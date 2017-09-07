@@ -1,4 +1,7 @@
-import mako
+from mako.template import Template
+from mako.runtime import Context
+from StringIO import StringIO
+import os
 import pyDOE
 
 def lhsSampler(ranges, numSamples):
@@ -10,7 +13,6 @@ def lhsSampler(ranges, numSamples):
         normalizedParams = []
         for range, param in zip(ranges, sample):
             normalizedParam = float(range[1] - range[0]) * param + range[0]
-            print range, param, normalizedParam
             normalizedParams.append(normalizedParam)
         normalizedSamples.append(normalizedParams)
 
@@ -46,14 +48,20 @@ def optimize(template_filename, ranges, state_space_sampler,
 
     return new_xx
 
+if __name__ == "__main__":
+    folder = os.getcwd() + '/scripts/parameter_analysis/'
+    mytemplate = Template(filename=folder+'task_assignment.xml')
+    buf = StringIO()
+    ctx = Context(buf, pk="75")
+    mytemplate.render_context(ctx)
+    print(buf.getvalue())
 
+    file = open(folder+'testfile.txt','w') 
+    file.write(buf.getvalue()) 
+    file.close() 
 
-ranges = [[0, 5], [0, 5], [0, 5], [700, 1300]]
-optimize('',ranges,lhsSampler,'','')
+    # Demo
+    ranges = [[0, 5], [0, 5], [0, 5], [700, 1300]]
+    optimize('',ranges,lhsSampler,'','')
 
-
-
-
-
-
-print 'done'
+    print 'done'
