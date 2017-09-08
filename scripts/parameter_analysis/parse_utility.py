@@ -13,20 +13,23 @@ def GetUtility(fileName):
 
     return utility
 
-dir = '/home/kbowers6/swarm-log/pw-p2/'
-files = os.listdir(dir)
+def GetAverageUtility(directory):
+    files = os.listdir(directory)
 
-sumUtility = 0
-for file in files:
-    utility = GetUtility(dir + file + '/summary.csv')
-    sumUtility += float(utility)
-    # print utility
+    sumUtility = 0
+    for file in files:
+        utility = GetUtility(directory + '/' + file + '/summary.csv')
+        sumUtility += float(utility)
 
-avgUtility = sumUtility / len(files)
-print 'Average Utility:', avgUtility
+    avgUtility = sumUtility / len(files)
+    return avgUtility
 
-# example plot
-plt.plot([0, .1, .2, .3, .5, 1, 2, 3], [0.35, 0.55, .76, .85, .97, 1, 1, 1.08], 'ro')
-plt.xlabel('Priority Weight')
-plt.ylabel('Utility')
-plt.show()
+if __name__ == "__main__":
+    dir = '/home/kbowers6/swarm-log/pw-p2'
+    print GetAverageUtility(dir)
+
+    # example plot
+    plt.plot([0, .1, .2, .3, .5, 1, 2, 3], [0.35, 0.55, .76, .85, .97, 1, 1, 1.08], 'ro')
+    plt.xlabel('Priority Weight')
+    plt.ylabel('Utility')
+    plt.show()

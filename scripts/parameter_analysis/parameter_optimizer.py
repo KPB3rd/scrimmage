@@ -3,6 +3,8 @@ from mako.runtime import Context
 from StringIO import StringIO
 import os
 import pyDOE
+import subprocess
+
 
 def lhsSampler(ranges, numSamples):
     paramSamples = pyDOE.lhs(len(ranges), samples=numSamples)
@@ -19,30 +21,47 @@ def lhsSampler(ranges, numSamples):
     return normalizedSamples
 
 
-def generateMissionFile(template_filename, parameter_labels, parameter_values):
+def generateMissionFile(template_full_filename, parameter_labels, parameter_values, missionIteration):
     if len(parameter_labels) != len(parameter_values):
         raise ValueError('Parameter Labels and Values are mismatched.')
+        quit()
 
-    folder = os.path.dirname(os.path.abspath(template_filename))
-    mytemplate = Template(filename=template_filename)
+    # Load the mission file
+    mytemplate = Template(filename=template_full_filename)
 
-    parameters = dict(zip(parameter_labels, parameter_values))
+    # Parse in the params
+    try:
+        parameters = dict(zip(parameter_labels, parameter_values))
+        missionData = mytemplate.render(**parameters)
 
-    file = open(folder + '/testfile.txt', 'w')
-    file.write(mytemplate.render(**parameters))
-    file.close()
+        # Save the file
+        folder = os.path.dirname(os.path.abspath(template_full_filename))
+        filename = os.path.splitext(os.path.basename(template_full_filename))[0]
+        file = open(folder + '/' + filename + str(missionIteration) + '.xml', 'w')
+        file.write(missionData)
+        file.close()
+    except NameError:
+        print 'Detected incorrect or missing parameters in mission xml.'
+        quit()
+
 
 
 def optimize(template_filename, ranges, parameter_labels, state_space_sampler,
              post_scrimmage_analysis, function_approximator,
-             numSamples=10, numIterationsPerSample=10):
-
-    generateMissionFile(template_filename, parameter_labels, [.1, .2])
+             numSamples=5, numIterationsPerSample=10):
 
     xx = []
     yy = []
 
+    # Exploration parameters
     new_xx = state_space_sampler(ranges, numSamples)
+
+    # Create mission files for initial exploration
+    for iter, params in enumerate(new_xx):
+        generateMissionFile(template_filename, parameter_labels, params, iter)
+
+    print 'Samples generated.'
+
     while True:
         for sample in new_xx:
             # Parse sample into template mission
@@ -66,12 +85,10 @@ def optimize(template_filename, ranges, parameter_labels, state_space_sampler,
     return new_xx
 
 if __name__ == "__main__":
-
-
-
     # Demo
-    ranges = [[0, 5], [0, 5], [0, 5], [700, 1300]]
+    ranges = [[0, 2], [0, 2], [0, 2], [700, 1300]]
+    labels = ['w_pk', 'w_pr', 'w_dist', 'w_dist_decay']
     folder = os.getcwd() + '/scripts/parameter_analysis/'
-    optimize(folder + 'task_assignment.xml', ranges, ['w_pk', 'w_pr'], lhsSampler, '', '')
+    optimize(folder + 'task_assignment.xml', ranges, labels, lhsSampler, '', '')
 
-    print 'done'
+    print 'Done'
