@@ -66,7 +66,7 @@
     <autonomy order="0">MissionExecutor</autonomy>
     <autonomy order="1">Formation</autonomy>
     <autonomy order="2" 
-              weight_priority=".2" weight_pk="1"
+              weight_priority="${w_pr}" weight_pk="${w_pk}"
               weight_dist=".2"    dist_decay="1000">AuctionPlugin</autonomy>
     <autonomy order="3">SimTimeOnTargetPlugin</autonomy>
     <autonomy order="4">TaskManagerPlugin</autonomy>
@@ -90,7 +90,7 @@
     <x>0</x>
     <y>1000</y>
     <generate_start_time>0</generate_start_time>
-    <autonomy range="1500" pk="${pk}">Target</autonomy>
+    <autonomy range="1500" pk=".4">Target</autonomy>
 
     <visual_scale>20</visual_scale>
   </entity>

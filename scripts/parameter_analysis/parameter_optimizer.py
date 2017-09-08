@@ -19,9 +19,26 @@ def lhsSampler(ranges, numSamples):
     return normalizedSamples
 
 
+def generateMissionFile(template_filename, parameter_labels, parameter_values):
+    if len(parameter_labels) != len(parameter_values):
+        raise ValueError('Parameter Labels and Values are mismatched.')
 
-def optimize(template_filename, ranges, state_space_sampler,
-             post_scrimmage_analysis, function_approximator, numSamples=10, numIterationsPerSample=10):
+    folder = os.path.dirname(os.path.abspath(template_filename))
+    mytemplate = Template(filename=template_filename)
+
+    parameters = dict(zip(parameter_labels, parameter_values))
+
+    file = open(folder + '/testfile.txt', 'w')
+    file.write(mytemplate.render(**parameters))
+    file.close()
+
+
+def optimize(template_filename, ranges, parameter_labels, state_space_sampler,
+             post_scrimmage_analysis, function_approximator,
+             numSamples=10, numIterationsPerSample=10):
+
+    generateMissionFile(template_filename, parameter_labels, [.1, .2])
+
     xx = []
     yy = []
 
@@ -37,11 +54,11 @@ def optimize(template_filename, ranges, state_space_sampler,
         # post_scrimmage_analysis for all mission results
         # append results to yy
         xx.append(new_xx)
-        yy.append(post_scrimmage_analysis('path'))
+        # yy.append(post_scrimmage_analysis('path'))
 
         # Use f_hat to guess some optimal params
-        optimal_params = function_approximator(xx, yy)
-        new_xx = optimal_params
+        # optimal_params = function_approximator(xx, yy)
+        # new_xx = optimal_params
 
         # When to stop? When f_hat is confident?
         break
@@ -49,19 +66,12 @@ def optimize(template_filename, ranges, state_space_sampler,
     return new_xx
 
 if __name__ == "__main__":
-    folder = os.getcwd() + '/scripts/parameter_analysis/'
-    mytemplate = Template(filename=folder+'task_assignment.xml')
-    buf = StringIO()
-    ctx = Context(buf, pk="75")
-    mytemplate.render_context(ctx)
-    print(buf.getvalue())
 
-    file = open(folder+'testfile.txt','w') 
-    file.write(buf.getvalue()) 
-    file.close() 
+
 
     # Demo
     ranges = [[0, 5], [0, 5], [0, 5], [700, 1300]]
-    optimize('',ranges,lhsSampler,'','')
+    folder = os.getcwd() + '/scripts/parameter_analysis/'
+    optimize(folder + 'task_assignment.xml', ranges, ['w_pk', 'w_pr'], lhsSampler, '', '')
 
     print 'done'
