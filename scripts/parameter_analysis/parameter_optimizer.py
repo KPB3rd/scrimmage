@@ -4,6 +4,17 @@ from StringIO import StringIO
 import os
 import pyDOE
 import subprocess
+import threading
+import time
+import os
+import signal
+import sys
+import xml.etree.ElementTree as ET
+
+import numpy as np
+import queue
+from concurrent import futures
+
 
 
 def lhsSampler(ranges, numSamples):
@@ -21,52 +32,55 @@ def lhsSampler(ranges, numSamples):
     return normalizedSamples
 
 
-def generateMissionFile(template_full_filename, parameter_labels, parameter_values, missionIteration):
-    if len(parameter_labels) != len(parameter_values):
+def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, missionIteration):
+    if len(parameterLabels) != len(parameterValues):
         raise ValueError('Parameter Labels and Values are mismatched.')
         quit()
 
     # Load the mission file
-    mytemplate = Template(filename=template_full_filename)
+    myTemplate = Template(filename=templateFullFilename)
 
     # Parse in the params
     try:
-        parameters = dict(zip(parameter_labels, parameter_values))
-        missionData = mytemplate.render(**parameters)
+        parameterLabels.append('iter')
+        parameterValues.append(missionIteration)
+        parameters = dict(zip(parameterLabels, parameterValues))
+        missionData = myTemplate.render(**parameters)
 
         # Save the file
-        folder = os.path.dirname(os.path.abspath(template_full_filename))
-        filename = os.path.splitext(os.path.basename(template_full_filename))[0]
-        file = open(folder + '/' + filename + str(missionIteration) + '.xml', 'w')
+        folder = os.path.dirname(os.path.abspath(templateFullFilename))
+        filename = os.path.splitext(os.path.basename(templateFullFilename))[0]
+        fullFilePath = folder + '/' + filename + str(missionIteration) + '.xml'
+        file = open(fullFilePath, 'w')
         file.write(missionData)
         file.close()
+
+        return fullFilePath
     except NameError:
         print 'Detected incorrect or missing parameters in mission xml.'
         quit()
 
 
 
-def optimize(template_filename, ranges, parameter_labels, state_space_sampler,
-             post_scrimmage_analysis, function_approximator,
+def optimize(templateFilename, ranges, parameterLabels, stateSpaceSampler,
+             postScrimmageAnalysis, functionApproximator,
              numSamples=5, numIterationsPerSample=10):
 
     xx = []
     yy = []
 
     # Exploration parameters
-    new_xx = state_space_sampler(ranges, numSamples)
-
-    # Create mission files for initial exploration
-    for iter, params in enumerate(new_xx):
-        generateMissionFile(template_filename, parameter_labels, params, iter)
-
-    print 'Samples generated.'
+    new_xx = stateSpaceSampler(ranges, numSamples)
 
     while True:
-        for sample in new_xx:
+        for iter, params in enumerate(new_xx):
             # Parse sample into template mission
+            missionFile = generateMissionFile(templateFilename, parameterLabels, params, iter)
 
-            # run scrimmage for numIterationsPerSample times
+            # run scrimmage
+            print missionFile
+            scrimmage_process = subprocess.Popen(["scrimmage", missionFile])
+            print 'Running Simulation', iter
 
             pass
 
@@ -79,7 +93,7 @@ def optimize(template_filename, ranges, parameter_labels, state_space_sampler,
         # optimal_params = function_approximator(xx, yy)
         # new_xx = optimal_params
 
-        # When to stop? When f_hat is confident?
+        # When to stop? When f_hat is "confident"?
         break
 
     return new_xx
