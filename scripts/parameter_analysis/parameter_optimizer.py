@@ -4,6 +4,9 @@ from StringIO import StringIO
 import os
 import pyDOE
 import subprocess
+import parse_utility
+import numpy as np
+
 import threading
 import time
 import os
@@ -11,7 +14,6 @@ import signal
 import sys
 import xml.etree.ElementTree as ET
 
-import numpy as np
 import queue
 from concurrent import futures
 
@@ -32,19 +34,21 @@ def lhsSampler(ranges, numSamples):
     return normalizedSamples
 
 
-def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, missionIteration):
+def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, logPath, missionIteration):
+    print parameterLabels, parameterValues
+
     if len(parameterLabels) != len(parameterValues):
-        raise ValueError('Parameter Labels and Values are mismatched.')
+        raise ValueError('Parameter Labels and Values are mismatched. (Labels=', len(parameterLabels), 'values=', len(parameterValues))
         quit()
 
     # Load the mission file
     myTemplate = Template(filename=templateFullFilename)
 
-    # Parse in the params
     try:
-        parameterLabels.append('iter')
-        parameterValues.append(missionIteration)
-        parameters = dict(zip(parameterLabels, parameterValues))
+        # Add log path
+        parameters = dict(zip(parameterLabels + ['log_path'], parameterValues + [logPath + 'iter-' + missionIteration]))
+
+        # Parse in the params
         missionData = myTemplate.render(**parameters)
 
         # Save the file
@@ -63,7 +67,7 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 
 
 def optimize(templateFilename, ranges, parameterLabels, stateSpaceSampler,
-             postScrimmageAnalysis, functionApproximator,
+             postScrimmageAnalysis, functionApproximator, logPath
              numSamples=5, numIterationsPerSample=10):
 
     xx = []
@@ -71,18 +75,25 @@ def optimize(templateFilename, ranges, parameterLabels, stateSpaceSampler,
 
     # Exploration parameters
     new_xx = stateSpaceSampler(ranges, numSamples)
-
+    simulationIter = 0
     while True:
-        for iter, params in enumerate(new_xx):
+        scrimmageProcesses = []
+        newBatchStartingIter = simulationIter
+        for params in new_xx:
             # Parse sample into template mission
-            missionFile = generateMissionFile(templateFilename, parameterLabels, params, iter)
+            missionFile = generateMissionFile(templateFilename, parameterLabels, params, logPath, simulationIter)
 
             # run scrimmage
-            print missionFile
-            scrimmage_process = subprocess.Popen(["scrimmage", missionFile])
-            print 'Running Simulation', iter
+            # TODO REMOVE
+            # missionFile = "/home/kbowers6/Documents/scrimmage/scrimmage/missions/straight.xml"
+            scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
+            simulationIter+=1
+        
+        # Wait for all processes to finish
+        for process in scrimmageProcesses:
+            process.wait()
 
-            pass
+
 
         # post_scrimmage_analysis for all mission results
         # append results to yy
@@ -100,9 +111,10 @@ def optimize(templateFilename, ranges, parameterLabels, stateSpaceSampler,
 
 if __name__ == "__main__":
     # Demo
-    ranges = [[0, 2], [0, 2], [0, 2], [700, 1300]]
-    labels = ['w_pk', 'w_pr', 'w_dist', 'w_dist_decay']
+    test_ranges = [[0, 2], [0, 2], [0, 2], [700, 1300]]
+    test_labels = ['w_pk', 'w_pr', 'w_dist', 'w_dist_decay']
     folder = os.getcwd() + '/scripts/parameter_analysis/'
-    optimize(folder + 'task_assignment.xml', ranges, labels, lhsSampler, '', '')
+    pathPath = "~/swarm-log/analysis/"
+    optimize(folder + 'task_assignment.xml', test_ranges, test_labels, lhsSampler, GetUtility, '', logPath)
 
     print 'Done'
