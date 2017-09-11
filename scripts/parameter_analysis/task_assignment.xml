@@ -4,9 +4,9 @@
     name="SASC Capture the Flag">
   
   <run start="0.0" end="3000" dt="0.1" motion_multiplier="12"
-       time_warp="0" 
-       enable_gui="true" 
-       start_paused="true"/>
+       time_warp="10" 
+       enable_gui="false" 
+       start_paused="false"/>
 
   <!-- <multi_threaded num_threads="4">true</multi_threaded> -->
   <end_condition>time</end_condition> <!-- time, one_team, none-->  
@@ -20,7 +20,7 @@
   <show_plugins>true</show_plugins>
   <output_type>all</output_type>
   
-  <log_dir>~/swarm-log/iter-${iter}</log_dir>  
+  <log_dir>${log_path}</log_dir>  
       
   <latitude_origin>35.721025</latitude_origin>
   <longitude_origin>-120.767925</longitude_origin>

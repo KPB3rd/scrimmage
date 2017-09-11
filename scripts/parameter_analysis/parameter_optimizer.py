@@ -66,12 +66,14 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 
 
 
+# postScrimmageAnalysis gets called on a directory of mission files, not a specific mission.
+# numIterationsPerSample not supported yet, TODO
 def optimize(templateFilename, ranges, parameterLabels, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath
              numSamples=5, numIterationsPerSample=10):
 
-    xx = []
-    yy = []
+    xx = {}
+    yy = {}
 
     # Exploration parameters
     new_xx = stateSpaceSampler(ranges, numSamples)
@@ -84,21 +86,18 @@ def optimize(templateFilename, ranges, parameterLabels, stateSpaceSampler,
             missionFile = generateMissionFile(templateFilename, parameterLabels, params, logPath, simulationIter)
 
             # run scrimmage
-            # TODO REMOVE
             # missionFile = "/home/kbowers6/Documents/scrimmage/scrimmage/missions/straight.xml"
             scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
+            xx[simulationIter] = params
             simulationIter+=1
         
         # Wait for all processes to finish
         for process in scrimmageProcesses:
             process.wait()
 
-
-
-        # post_scrimmage_analysis for all mission results
-        # append results to yy
-        xx.append(new_xx)
-        # yy.append(post_scrimmage_analysis('path'))
+        # analysis for all mission results
+        for iter in range(newBatchStartingIter,simulationIter):
+            yy[iter] = postScrimmageAnalysis(logPath+'iter-'+iter)
 
         # Use f_hat to guess some optimal params
         # optimal_params = function_approximator(xx, yy)
@@ -114,7 +113,7 @@ if __name__ == "__main__":
     test_ranges = [[0, 2], [0, 2], [0, 2], [700, 1300]]
     test_labels = ['w_pk', 'w_pr', 'w_dist', 'w_dist_decay']
     folder = os.getcwd() + '/scripts/parameter_analysis/'
-    pathPath = "~/swarm-log/analysis/"
-    optimize(folder + 'task_assignment.xml', test_ranges, test_labels, lhsSampler, GetUtility, '', logPath)
+    test_logPath = "~/swarm-log/analysis/"
+    optimize(folder + 'task_assignment.xml', test_ranges, test_labels, lhsSampler, GetAverageUtility, '', test_logPath)
 
     print 'Done'
