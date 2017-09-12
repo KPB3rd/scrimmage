@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
+# Install with 'sudo pip install bayesian-optimization'
+
+
 
 def posterior(bo, x, xmin=-2, xmax=10):
     xmin, xmax = -2, 10
@@ -76,14 +79,30 @@ if __name__ == '__main__':
 
 
     x = np.linspace(-2, 10, 10000).reshape(-1, 1)
-    y = target(x)
-
-    # plt.plot(x, y)
-    # plt.show()
 
     bo = BayesianOptimization(target, {'x': (-2, 10)})
 
+    # Additionally, if we have any prior knowledge of the behaviour of
+    # the target function (even if not totally accurate) we can also
+    # tell that to the optimizer.
+    # Here we pass a dictionary with 'target' and parameter names as keys and a
+    # list of corresponding values
+    # bo.initialize(
+    #     {
+    #         'target': [-1, -1],
+    #         'x': [1, 1],
+    #         'y': [0, 2]
+    #     }
+    # )
+
     # utility = Upper Confidence Bound
-    # kappa = exploration vs exploitation. 5 -> much exploration
-    bo.maximize(init_points=2, n_iter=10, acq='ucb', kappa=5)
+    # kappa = exploration vs exploitation. 10 -> much exploration, 1 -> only tight exploitation
+    bo.maximize(init_points=2, n_iter=5, acq='ucb', kappa=5)
+
+    # The output values can be accessed with self.res
+    print 'Best param/output so far:', bo.res['max']
+
+    utility = bo.util.utility(x, bo.gp, 0)
+    print 'Best param to test next:', x[np.argmax(utility)]
+
     plot_gp(bo, x, y)
