@@ -9,6 +9,7 @@ import numpy as np
 
 import bayesian_optimization
 
+import logging
 import threading
 import time
 import os
@@ -71,22 +72,31 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath
-             numSamples=5, numIterationsPerSample=10):
+             numInitialSamples=5, numIterationsPerSample=10, numSamples=10):
     xx = {}
     yy = {}
 
+    folder = os.path.dirname(os.path.abspath(templateFilename))
+    logName = os.path.splitext(os.path.basename(templateFilename))[0]
+    logFile = folder + '/' + logName + '.log'
+    logging.basicConfig(filename=logFile, filemode='w', level=logging.DEBUG)
+
     # Initial exploration parameters
-    new_xx = stateSpaceSampler(ranges, numSamples)
+    logging.info('Sampling State Space')
+    new_xx = stateSpaceSampler(ranges, numInitialSamples)
     simulationIter = 0
-    while True:
+
+    for loopIter in range(numSamples):
         scrimmageProcesses = []
         newBatchStartingIter = simulationIter
         for params in new_xx:
             # Parse sample into template mission
+            logging.info('Generating Mission File')
             missionFile = generateMissionFile(templateFilename, ranges.keys(), params, logPath, simulationIter)
 
             # run scrimmage
             # missionFile = "/home/kbowers6/Documents/scrimmage/scrimmage/missions/straight.xml"
+            logging.info('Executing Mission Files')
             scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
             xx[simulationIter] = params
             simulationIter+=1
@@ -95,22 +105,23 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         for process in scrimmageProcesses:
             process.wait()
 
+        logging.info('Completed Scrimmage Simulation')
+
         # analysis for all mission results
+        logging.info('Parsing Results')
         for iter in range(newBatchStartingIter,simulationIter):
             yy[iter] = postScrimmageAnalysis(logPath+'iter-'+iter)
 
         # Use f_hat to guess some optimal params
-        xx = {'x': [-2, 2.6812, 1.6509, 10]}
-        yy = {'target': [0.20166, 1.08328, 1.30455, 0.21180]}
-
+        logging.info('Approximating function')
         knownArgmax, expectedValue, nextArgmax = functionApproximator(xx, yy, ranges)
+        logging.debug('knownArgmax' + knownArgmax)
+        logging.debug('expectedValue' + expectedValue)
+        logging.debug('nextArgmax' + nextArgmax)
+
         new_xx = nextArgmax
 
-        # Stop when choosing a new_xx thats super close to an existing one
-
-        break
-
-    return new_xx
+    return knownArgmax, expectedValue
 
 if __name__ == "__main__":
     # Demo
