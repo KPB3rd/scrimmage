@@ -7,6 +7,8 @@ import subprocess
 import parse_utility
 import numpy as np
 
+import bayesian_optimization
+
 import threading
 import time
 import os
@@ -16,8 +18,6 @@ import xml.etree.ElementTree as ET
 
 import queue
 from concurrent import futures
-
-
 
 def lhsSampler(ranges, numSamples):
     paramSamples = pyDOE.lhs(len(ranges), samples=numSamples)
@@ -103,8 +103,8 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         xx = {'x': [-2, 2.6812, 1.6509, 10]}
         yy = {'target': [0.20166, 1.08328, 1.30455, 0.21180]}
 
-        optimalParams = functionApproximator(xx, yy, ranges)
-        new_xx = optimalParams
+        knownArgmax, expectedValue, nextArgmax = functionApproximator(xx, yy, ranges)
+        new_xx = nextArgmax
 
         # Stop when choosing a new_xx thats super close to an existing one
 
@@ -115,7 +115,6 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
 if __name__ == "__main__":
     # Demo
     test_ranges = {'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)}
-    # test_ranges = [[0, 2], [0, 2], [0, 2], [700, 1300]]
     folder = os.getcwd() + '/scripts/parameter_analysis/'
     test_logPath = "~/swarm-log/analysis/"
     optimize(folder + 'task_assignment.xml', test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax, test_logPath)
