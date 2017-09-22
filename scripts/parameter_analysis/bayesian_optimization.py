@@ -1,4 +1,5 @@
 from bayes_opt import BayesianOptimization  # Install with 'sudo pip install bayesian-optimization'
+from bayes_opt import helpers
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -8,7 +9,8 @@ from matplotlib import gridspec
 # ranges is the range of each value e.g. {'x': (-2, 10)}
 # acq can be 'ucb' (Upper Confidence Bound) or 'ei' (Expected Improvement)
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
-def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=5):
+# Returns dict of optimal params
+def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=7):
     bo = BayesianOptimization(None, ranges)
 
     # Combine Inputs and Outputs into one dict
@@ -21,8 +23,10 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=5
 
     # Create every possible parameter combination (meshgrid)
     linspaces = []
+    print ranges.keys()
     for paramRange in ranges.values():
-        x = np.linspace(paramRange[0], paramRange[1], 1000)
+        # print paramRange
+        x = np.linspace(paramRange[0], paramRange[1], 100)
         linspaces.append(x)
     X = np.meshgrid(*linspaces)
     for iter in range(len(linspaces)):
@@ -30,11 +34,12 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=5
     X = np.vstack(linspaces).T[:, [1, 0]]
 
     # Best input/output so far
-    bestKnownReults = bo.res['max']
+    bestKnownResults = bo.res['max']
 
     # Argmax, return the optimal parameters to try next (based on Explore vs Exploit)
-    utility = bo.util.utility(X, bo.gp, bo.Y.max())
-    return X[np.argmax(utility)]
+    y_max = bo.Y.max()
+    x_max = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=y_max, bounds=bo.bounds)
+    return zip(ranges.keys(), x_max)
 
 
 def posterior(bo, x, xmin=-2, xmax=10):
@@ -112,8 +117,18 @@ if __name__ == '__main__':
 
     # 2D black box function example
     if True:
-        ranges = {'x': (0, 6), 'y': (0, 6)}
-        testIn = {'x': [1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793, 1.5898], 'y': [2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0, 5.4137, 3.6339]}
+        ranges = {'x': (0, 6), 'y': (0, 8), 'z': (0,1)}
+        testIn = {
+            'x': [
+                1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793,
+                1.5898
+            ],
+            'y': [
+                2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0,
+                5.4137, 3.6339
+            ],
+            'z': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        }
         testOut = {'target': [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]}
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
