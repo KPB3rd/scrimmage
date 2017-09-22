@@ -10,7 +10,7 @@ from matplotlib import gridspec
 # acq can be 'ucb' (Upper Confidence Bound) or 'ei' (Expected Improvement)
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
 # Returns dict of optimal params
-def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=7):
+def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6):
     bo = BayesianOptimization(None, ranges)
 
     # Combine Inputs and Outputs into one dict
@@ -18,20 +18,8 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=7
     inputsOutputs.update(priorOutputs)
     bo.initialize(inputsOutputs)
 
-    # Maximize the function approximation to find the best parameters
+    # Maximize the function approximation to find the best parameters (0 iterations since we dont have an explicit function to sample)
     bo.maximize(init_points=0, n_iter=0, acq=acq, kappa=kappa)
-
-    # Create every possible parameter combination (meshgrid)
-    linspaces = []
-    print ranges.keys()
-    for paramRange in ranges.values():
-        # print paramRange
-        x = np.linspace(paramRange[0], paramRange[1], 100)
-        linspaces.append(x)
-    X = np.meshgrid(*linspaces)
-    for iter in range(len(linspaces)):
-        linspaces[iter] = X[iter].ravel()
-    X = np.vstack(linspaces).T[:, [1, 0]]
 
     # Best input/output so far
     bestKnownResults = bo.res['max']
@@ -116,8 +104,24 @@ if __name__ == '__main__':
         BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 2D black box function example
+    if False:
+        ranges = {'x': (0, 6), 'y': (0, 8)}
+        testIn = {
+            'x': [
+                1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793,
+                1.5898
+            ],
+            'y': [
+                2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0,
+                5.4137, 3.6339
+            ]
+        }
+        testOut = {'target': [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]}
+        print BayesianOptimizeArgmax(testIn, testOut, ranges)
+
+    # 3D black box function example
     if True:
-        ranges = {'x': (0, 6), 'y': (0, 8), 'z': (0,1)}
+        ranges = {'x': (0, 6), 'y': (0, 8), 'z': (0, 1)}
         testIn = {
             'x': [
                 1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793,
@@ -129,7 +133,12 @@ if __name__ == '__main__':
             ],
             'z': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         }
-        testOut = {'target': [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]}
+        testOut = {
+            'target': [
+                .05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002,
+                .16007, 1.41949
+            ]
+        }
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 2D example
@@ -192,6 +201,10 @@ if __name__ == '__main__':
 
         utility = bo.util.utility(x, bo.gp, 0)
         print 'Best param to test next:', x[np.argmax(utility)]
+
+        y_max = bo.Y.max()
+        x_max = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=y_max, bounds=bo.bounds)
+        print 'which should equal', x_max
 
         # # Making changes to the gaussian process can impact the algorithm
         # # dramatically.
