@@ -43,14 +43,15 @@ def target(x, y):
 
 
 n = 1e5
-x = y = np.linspace(0, 6, 300)
+x = np.linspace(0, 6, 300)
+y = np.linspace(0, 8, 300)
 X, Y = np.meshgrid(x, y)
 x = X.ravel()
 y = Y.ravel()
 X = np.vstack([x, y]).T[:, [1, 0]]
 z = target(x, y)
 
-
+print X, X.shape
 
 print(max(z))
 print(min(z))
@@ -133,7 +134,7 @@ def plot_2d(name=None):
 
 
 
-bo = BayesianOptimization(target, {'x': (0, 6), 'y': (0, 6)})
+bo = BayesianOptimization(target, {'x': (0, 6), 'y': (0, 8)})
 
 
 

@@ -75,7 +75,7 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     xx = {}
     yy = {}
 
-    # Exploration parameters
+    # Initial exploration parameters
     new_xx = stateSpaceSampler(ranges, numSamples)
     simulationIter = 0
     while True:

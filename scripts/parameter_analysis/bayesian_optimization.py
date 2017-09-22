@@ -1,11 +1,8 @@
-from bayes_opt import BayesianOptimization
+from bayes_opt import BayesianOptimization  # Install with 'sudo pip install bayesian-optimization'
 import numpy as np
 
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-
-# Install with 'sudo pip install bayesian-optimization'
-
 
 # knownInputOutputs is dictionary of prior values e.g. { 'target': [...], 'x': [...]}
 # ranges is the range of each value e.g. {'x': (-2, 10)}
@@ -14,20 +11,30 @@ from matplotlib import gridspec
 def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=5):
     bo = BayesianOptimization(None, ranges)
 
+    # Combine Inputs and Outputs into one dict
     inputsOutputs = priorInputs.copy()
     inputsOutputs.update(priorOutputs)
     bo.initialize(inputsOutputs)
 
+    # Maximize the function approximation to find the best parameters
     bo.maximize(init_points=0, n_iter=0, acq=acq, kappa=kappa)
 
-    # Argmax
-    x = np.linspace(-2, 10, 1000).reshape(-1, 1)
-    y = np.linspace(-2, 10, 1000).reshape(-1, 1)
+    # Create every possible parameter combination (meshgrid)
+    linspaces = []
+    for paramRange in ranges.values():
+        x = np.linspace(paramRange[0], paramRange[1], 1000)
+        linspaces.append(x)
+    X = np.meshgrid(*linspaces)
+    for iter in range(len(linspaces)):
+        linspaces[iter] = X[iter].ravel()
+    X = np.vstack(linspaces).T[:, [1, 0]]
 
-    utility = bo.util.utility(np.hstack((x, y)), bo.gp, 0)
-    print utility
-    return x[np.argmax(utility)], y[np.argmax(utility)]
-    pass
+    # Best input/output so far
+    bestKnownReults = bo.res['max']
+
+    # Argmax, return the optimal parameters to try next (based on Explore vs Exploit)
+    utility = bo.util.utility(X, bo.gp, bo.Y.max())
+    return X[np.argmax(utility)]
 
 
 def posterior(bo, x, xmin=-2, xmax=10):
@@ -96,11 +103,50 @@ def plot_gp(bo, x, y):
 
 if __name__ == '__main__':
 
-    ranges = {'x': (-2, 10), 'y': (-2,10)}
-    testIn = {'x': [-2, 2.6812, 1.6509, 10], 'y': [-2, 2.6812, 1.6509, 10]}
-    testOut = {'target': [0.20166, 1.08328, 1.30455, 0.21180]}
-    print BayesianOptimizeArgmax(testIn, testOut, ranges)
+    # 1D black box function example
+    if False:
+        ranges = {'x': (-2, 10)}
+        testIn = {'x': [-2, 2.6812, 1.6509, 10]}
+        testOut = {'target': [0.20166, 1.08328, 1.30455, 0.21180]}
+        BayesianOptimizeArgmax(testIn, testOut, ranges)
 
+    # 2D black box function example
+    if True:
+        ranges = {'x': (0, 6), 'y': (0, 6)}
+        testIn = {'x': [1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793, 1.5898], 'y': [2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0, 5.4137, 3.6339]}
+        testOut = {'target': [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]}
+        print BayesianOptimizeArgmax(testIn, testOut, ranges)
+
+    # 2D example
+    if False:
+        def target(x, y):
+            a = np.exp(-( (x - 2)**2/0.7 + (y - 4)**2/1.2) + (x - 2)*(y - 4)/1.6 )
+            b = np.exp(-( (x - 4)**2/3 + (y - 2)**2/2.) )
+            c = np.exp(-( (x - 4)**2/0.5 + (y - 4)**2/0.5) + (x - 4)*(y - 4)/0.5 )
+            d = np.sin(3.1415 * x)
+            e = np.exp(-( (x - 5.5)**2/0.5 + (y - 5.5)**2/.5) )
+            return 2*a + b - c + 0.17 * d + 2*e
+
+        x = np.linspace(0, 6, 300)
+        y = np.linspace(0, 8, 300)
+        inputs = [x,y]
+        X, Y = np.meshgrid(*inputs)
+        x = X.ravel()
+        y = Y.ravel()
+        X = np.vstack([x, y]).T[:, [1, 0]]
+        z = target(x, y)
+
+        bo = BayesianOptimization(target, {'x': (0, 6), 'y': (0, 6)})
+
+        bo.maximize(init_points=5, n_iter=4, acq='ucb', kappa=5)
+
+        # The output values can be accessed with self.res
+        print 'Best param/output so far:', bo.res['max']
+
+        utility = bo.util.utility(X, bo.gp, bo.Y.max())
+        print 'Best param to test next:', X[np.argmax(utility)]
+
+    # 1D graphical example
     if False:
         def target(x):
             return np.exp(-(x - 2)**2) + np.exp(-(x - 6)**2 / 10) + 1 / (x**2 + 1)
