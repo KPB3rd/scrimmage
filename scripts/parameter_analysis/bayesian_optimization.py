@@ -9,7 +9,7 @@ from matplotlib import gridspec
 # ranges is the range of each value e.g. {'x': (-2, 10)}
 # acq can be 'ucb' (Upper Confidence Bound) or 'ei' (Expected Improvement)
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
-# Returns dict of optimal params
+# Returns (dict of known argmax, expectedValue, dict of potential argmax i.e. the next argmax to try)
 def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6):
     bo = BayesianOptimization(None, ranges)
 
@@ -21,13 +21,12 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6
     # Maximize the function approximation to find the best parameters (0 iterations since we dont have an explicit function to sample)
     bo.maximize(init_points=0, n_iter=0, acq=acq, kappa=kappa)
 
-    # Best input/output so far
-    bestKnownResults = bo.res['max']
-
     # Argmax, return the optimal parameters to try next (based on Explore vs Exploit)
-    y_max = bo.Y.max()
-    x_max = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=y_max, bounds=bo.bounds)
-    return zip(ranges.keys(), x_max)
+    knownYmax = bo.Y.max()
+    knownArgmax = bo.X[bo.Y.argmax()]
+
+    nextArgmax = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=knownYmax, bounds=bo.bounds)
+    return zip(ranges.keys(), knownArgmax), knownYmax, zip(ranges.keys(), nextArgmax)
 
 
 def posterior(bo, x, xmin=-2, xmax=10):
@@ -101,7 +100,7 @@ if __name__ == '__main__':
         ranges = {'x': (-2, 10)}
         testIn = {'x': [-2, 2.6812, 1.6509, 10]}
         testOut = {'target': [0.20166, 1.08328, 1.30455, 0.21180]}
-        BayesianOptimizeArgmax(testIn, testOut, ranges)
+        print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 2D black box function example
     if False:
@@ -121,17 +120,24 @@ if __name__ == '__main__':
 
     # 3D black box function example
     if True:
-        ranges = {'x': (0, 6), 'y': (0, 8), 'z': (0, 1)}
+        # ranges = {'x': (0, 6), 'y': (0, 8), 'z': (0, 1)}
+        # testIn = {
+        #     'x': [
+        #         1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793,
+        #         1.5898
+        #     ],
+        #     'y': [
+        #         2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0,
+        #         5.4137, 3.6339
+        #     ],
+        #     'z': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        # }
+
+        ranges = {'x': (0, 3), 'y': (3, 5), 'z': (5, 10)}
         testIn = {
-            'x': [
-                1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793,
-                1.5898
-            ],
-            'y': [
-                2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0,
-                5.4137, 3.6339
-            ],
-            'z': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+            'x': [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
+            'y': [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
+            'z': [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
         }
         testOut = {
             'target': [
