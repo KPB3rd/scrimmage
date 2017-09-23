@@ -4,10 +4,10 @@ from StringIO import StringIO
 import os
 import pyDOE
 import subprocess
-import parse_utility
+from parse_utility import GetAverageUtility
 import numpy as np
 
-import bayesian_optimization
+from bayesian_optimization import BayesianOptimizeArgmax
 
 import logging
 import threading
@@ -47,7 +47,7 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 
     try:
         # Add log path
-        parameters = dict(zip(parameterLabels + ['log_path'], parameterValues + [logPath + 'iter-' + missionIteration]))
+        parameters = dict(zip(parameterLabels + ['log_path'], parameterValues + [logPath + 'iter-' + str(missionIteration)]))
 
         # Parse in the params
         missionData = myTemplate.render(**parameters)
@@ -71,8 +71,8 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 # numIterationsPerSample not supported yet, TODO
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
-             postScrimmageAnalysis, functionApproximator, logPath
-             numInitialSamples=5, numIterationsPerSample=10, numSamples=10):
+             postScrimmageAnalysis, functionApproximator, logPath,
+             numInitialSamples=5, numIterationsPerSample=1, numSamples=10):
     xx = {}
     yy = {}
 
@@ -87,30 +87,37 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     simulationIter = 0
 
     for loopIter in range(numSamples):
-        scrimmageProcesses = []
         newBatchStartingIter = simulationIter
         for params in new_xx:
             # Parse sample into template mission
-            logging.info('Generating Mission File')
+            logging.info('Generating Mission File with params: ' + ','.join((str(x) for x in params)))
             missionFile = generateMissionFile(templateFilename, ranges.keys(), params, logPath, simulationIter)
 
-            # run scrimmage
-            # missionFile = "/home/kbowers6/Documents/scrimmage/scrimmage/missions/straight.xml"
-            logging.info('Executing Mission Files')
-            scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
             xx[simulationIter] = params
-            simulationIter+=1
-        
-        # Wait for all processes to finish
-        for process in scrimmageProcesses:
-            process.wait()
 
-        logging.info('Completed Scrimmage Simulation')
+            # Run the same params multiple times (in order to get a better average result)
+            scrimmageProcesses = []
+            for paramScrimmageIter in range(numIterationsPerSample):
+                # run scrimmage
+                logging.info('Executing Mission File')
+                scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
+
+                # Wait for all processes to finish
+                for process in scrimmageProcesses:
+                    process.wait()
+
+                logging.info('Completed Scrimmage Simulations')
+
+            simulationIter+=1
 
         # analysis for all mission results
         logging.info('Parsing Results')
         for iter in range(newBatchStartingIter,simulationIter):
             yy[iter] = postScrimmageAnalysis(logPath+'iter-'+iter)
+
+            # Write out the params and output
+            with open(folder + '/' + logName + '_Samples.log', "a") as myfile:
+                myfile.write("Parameters: " + ",".join((str(x) for x in xx[iter])) + '. Results: ' + ",".join((str(x) for x in yy[iter])))
 
         # Use f_hat to guess some optimal params
         logging.info('Approximating function')
@@ -126,8 +133,8 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
 if __name__ == "__main__":
     # Demo
     test_ranges = {'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)}
-    folder = os.getcwd() + '/scripts/parameter_analysis/'
+    # folder = os.getcwd() + '/scripts/parameter_analysis/'
     test_logPath = "~/swarm-log/analysis/"
-    optimize(folder + 'task_assignment.xml', test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax, test_logPath)
+    optimize('task_assignment.xml', test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax, test_logPath)
 
     print 'Done'
