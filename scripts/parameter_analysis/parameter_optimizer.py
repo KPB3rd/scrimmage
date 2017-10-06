@@ -9,6 +9,7 @@ import numpy as np
 
 from bayesian_optimization import BayesianOptimizeArgmax
 
+import os.path
 import logging
 import threading
 import time
@@ -21,6 +22,9 @@ import queue
 from concurrent import futures
 
 def lhsSampler(ranges, numSamples):
+    if numSamples == 0:
+        return []
+
     paramSamples = pyDOE.lhs(len(ranges), samples=numSamples)
 
     # Vectorize to make faster
@@ -65,7 +69,17 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
         print 'Detected incorrect or missing parameters in mission xml.'
         quit()
 
-
+# Return xx and yy parsed from file
+def parseSamples(file):
+    xx = {}
+    yy = {}
+    if os.path.isfile(file):
+        with open(file) as f:
+            for line in f:
+                values = line.split('.')
+                xx.append(values[0])
+                yy.append(values[1])
+    return xx, yy
 
 # postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning only 1 value
 # numIterationsPerSample not supported yet, TODO
@@ -73,20 +87,20 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
              numInitialSamples=5, numIterationsPerSample=1, numSamples=10):
-    xx = {}
-    yy = {}
-
     folder = os.path.dirname(os.path.abspath(templateFilename))
     logName = os.path.splitext(os.path.basename(templateFilename))[0]
+    samplesFile = folder + '/' + logName + '_samples.log'
     logFile = folder + '/' + logName + '.log'
     logging.basicConfig(filename=logFile, filemode='w', level=logging.DEBUG)
+
+    xx, yy = parseSamples(samplesFile)
 
     # Initial exploration parameters
     logging.info('Sampling State Space')
     new_xx = stateSpaceSampler(ranges, numInitialSamples)
     simulationIter = 0
 
-    for loopIter in range(numSamples):
+    for loopIter in range(numSamples+1):
         newBatchStartingIter = simulationIter
         for params in new_xx:
             # Parse sample into template mission
@@ -116,8 +130,8 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
             yy[iter] = postScrimmageAnalysis(logPath+'iter-'+iter)
 
             # Write out the params and output
-            with open(folder + '/' + logName + '_Samples.log', "a") as myfile:
-                myfile.write("Parameters: " + ",".join((str(x) for x in xx[iter])) + '. Results: ' + ",".join((str(x) for x in yy[iter])))
+            with open(samplesFile, "a") as myfile:
+                myfile.write(",".join((str(x) for x in xx[iter])) + '.' + ",".join((str(x) for x in yy[iter])))
 
         # Use f_hat to guess some optimal params
         logging.info('Approximating function')
