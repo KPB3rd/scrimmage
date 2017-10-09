@@ -75,11 +75,15 @@ def parseSamples(file):
     yy = {}
     if os.path.isfile(file):
         with open(file) as f:
-            for line in f:
-                values = line.split('.')
-                xx.append(values[0])
-                yy.append(values[1])
+            for iter, line in enumerate(f):
+                values = line.strip().split('=')
+                xx[iter] = [float(i) for i in values[0].split(',')]
+                yy[iter] = [float(i) for i in values[1].split(',')]
     return xx, yy
+
+def saveSamples(file, xx, yy, iter):
+    with open(file, "a") as myfile:
+        myfile.write('\n' + ",".join((str(x) for x in xx[iter])) + '=' + str(yy[iter]))
 
 # postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning only 1 value
 # numIterationsPerSample not supported yet, TODO
@@ -94,11 +98,13 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     logging.basicConfig(filename=logFile, filemode='w', level=logging.DEBUG)
 
     xx, yy = parseSamples(samplesFile)
+    print 'Initial xx:', xx
+    print 'Initial yy:', yy
 
-    # Initial exploration parameters
+    # Initial new exploration parameters
     logging.info('Sampling State Space')
     new_xx = stateSpaceSampler(ranges, numInitialSamples)
-    simulationIter = 0
+    simulationIter = len(xx)
 
     for loopIter in range(numSamples+1):
         newBatchStartingIter = simulationIter
@@ -129,9 +135,8 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         for iter in range(newBatchStartingIter,simulationIter):
             yy[iter] = postScrimmageAnalysis(logPath+'iter-'+iter)
 
-            # Write out the params and output
-            with open(samplesFile, "a") as myfile:
-                myfile.write(",".join((str(x) for x in xx[iter])) + '.' + ",".join((str(x) for x in yy[iter])))
+            # Append the new params and output
+            saveSamples(samplesFile, xx, yy, iter)
 
         # Use f_hat to guess some optimal params
         logging.info('Approximating function')
