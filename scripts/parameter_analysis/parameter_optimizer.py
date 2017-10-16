@@ -98,7 +98,7 @@ def saveSamples(file, xx, yy, header):
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
-             numInitialSamples=1, numIterationsPerSample=1, numSamples=2):
+             numInitialSamples=0, numIterationsPerSample=1, numSamples=0):
     folder = os.path.dirname(os.path.abspath(templateFilename))
     logName = os.path.splitext(os.path.basename(templateFilename))[0]
     samplesFile = folder + '/' + logName + '_samples.log'
@@ -162,9 +162,8 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
 if __name__ == "__main__":
     # Demo
     test_ranges = OrderedDict({'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)})
-    # folder = os.getcwd() + '/scripts/parameter_analysis/'
     test_logPath = "/home/kbowers6/swarm-log/analysis/"
-    optimize(
+    print optimize(
         'task_assignment.xml',
         test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax,
         test_logPath)
