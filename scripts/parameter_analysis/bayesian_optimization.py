@@ -11,11 +11,28 @@ from matplotlib import gridspec
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
 # Returns (dict of known argmax, expectedValue, dict of potential argmax i.e. the next argmax to try)
 def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6):
-    bo = BayesianOptimization(None, ranges)
+    dictRanges = {}
 
+    for paramName, paramRange in ranges:
+        dictRanges[paramName] = paramRange
+    print dictRanges
+
+    bo = BayesianOptimization(None, dictRanges)
+
+    # BO requires a single dict with the keys being the parameters and 'target' which is the output from the function
     # Combine Inputs and Outputs into one dict
-    inputsOutputs = priorInputs.copy()
-    inputsOutputs.update(priorOutputs)
+    inputsOutputs = {}
+    for sampleIter in range(len(priorInputs)):
+        for paramIter in range(len(ranges)):
+            paramName = ranges[paramIter][0]
+            if paramName in inputsOutputs:
+                inputsOutputs[paramName].append(
+                    priorInputs[sampleIter][paramIter])
+            else:
+                inputsOutputs[paramName] = [priorInputs[sampleIter][paramIter]]
+    inputsOutputs['target'] = priorOutputs
+
+    print inputsOutputs
     bo.initialize(inputsOutputs)
 
     # Maximize the function approximation to find the best parameters (0 iterations since we dont have an explicit function to sample)
@@ -26,7 +43,7 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6
     knownArgmax = bo.X[bo.Y.argmax()]
 
     nextArgmax = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=knownYmax, bounds=bo.bounds)
-    return zip(ranges.keys(), knownArgmax), knownYmax, zip(ranges.keys(), nextArgmax)
+    return zip(dictRanges.keys(), knownArgmax), knownYmax, zip(dictRanges.keys(), nextArgmax)
 
 
 def posterior(bo, x, xmin=-2, xmax=10):
@@ -97,25 +114,16 @@ if __name__ == '__main__':
 
     # 1D black box function example
     if False:
-        ranges = {'x': (-2, 10)}
-        testIn = {'x': [-2, 2.6812, 1.6509, 10]}
-        testOut = {'target': [0.20166, 1.08328, 1.30455, 0.21180]}
+        ranges = [('x',(-2, 10))]
+        testIn = [[-2, 2.6812, 1.6509, 10]]
+        testOut = [0.20166, 1.08328, 1.30455, 0.21180]
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 2D black box function example
     if False:
-        ranges = {'x': (0, 6), 'y': (0, 8)}
-        testIn = {
-            'x': [
-                1.2295, 1.6756, .57302, .22063, .37829, 6.0, 6.0, 0.0, 0.3793,
-                1.5898
-            ],
-            'y': [
-                2.0411, 2.1539, .8216, 2.4784, 5.7002, 6.0, 3.1094, 6.0,
-                5.4137, 3.6339
-            ]
-        }
-        testOut = {'target': [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]}
+        ranges = [('x',(0, 6)), ('y', (0, 8))]
+        testIn = [[1.2295,2.0411], [1.6756,2.1539], [.57302,.8216], [.22063,2.4784],[.37829,5.7002],[6.0,6.0],[6.0,3.1094],[0.0,6.0],[0.3793,5.4137],[1.5898, 3.6339]]
+        testOut = [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 3D black box function example
@@ -133,18 +141,13 @@ if __name__ == '__main__':
         #     'z': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         # }
 
-        ranges = {'x': (0, 3), 'y': (3, 5), 'z': (5, 10)}
-        testIn = {
-            'x': [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0],
-            'y': [3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0, 3.0],
-            'z': [10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
-        }
-        testOut = {
-            'target': [
+        ranges = [('x', (0, 3)), ('y', (3, 5)), ('z', (5, 10))]
+
+        testIn = [[2.0,3.0,10.0], [2.0,3.0,10.0], [2.0, 3.0,10.0], [2.0,3.0,10.0], [2.0,3.0,10.0], [2.0, 3.0,10.0], [2.0,3.0,10.0], [2.0,3.0,10.0],[2.0,3.0,10.0],[2.0,3.0,10.0]]
+        testOut = [
                 .05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002,
                 .16007, 1.41949
             ]
-        }
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 2D example
