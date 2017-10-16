@@ -36,8 +36,9 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6
     knownArgmax = bo.X[bo.Y.argmax()]
 
     nextArgmax = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=knownYmax, bounds=bo.bounds)
-    return zip(ranges.keys(), knownArgmax), knownYmax, zip(
-        ranges.keys(), nextArgmax)
+    return OrderedDict(zip(ranges.keys(), knownArgmax)), \
+            knownYmax, \
+            OrderedDict(zip(ranges.keys(), nextArgmax))
 
 
 def posterior(bo, x, xmin=-2, xmax=10):
