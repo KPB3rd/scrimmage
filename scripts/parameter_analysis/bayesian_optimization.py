@@ -1,7 +1,7 @@
 from bayes_opt import BayesianOptimization  # Install with 'sudo pip install bayesian-optimization'
 from bayes_opt import helpers
 import numpy as np
-
+from collections import OrderedDict
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
@@ -11,25 +11,18 @@ from matplotlib import gridspec
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
 # Returns (dict of known argmax, expectedValue, dict of potential argmax i.e. the next argmax to try)
 def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6):
-    dictRanges = {}
 
-    for paramName, paramRange in ranges:
-        dictRanges[paramName] = paramRange
-    print dictRanges
-
-    bo = BayesianOptimization(None, dictRanges)
+    bo = BayesianOptimization(None, ranges)
 
     # BO requires a single dict with the keys being the parameters and 'target' which is the output from the function
     # Combine Inputs and Outputs into one dict
     inputsOutputs = {}
     for sampleIter in range(len(priorInputs)):
-        for paramIter in range(len(ranges)):
-            paramName = ranges[paramIter][0]
-            if paramName in inputsOutputs:
-                inputsOutputs[paramName].append(
-                    priorInputs[sampleIter][paramIter])
+        for paramIter, key in enumerate(ranges.keys()):
+            if key in inputsOutputs:
+                inputsOutputs[key].append(priorInputs[sampleIter][paramIter])
             else:
-                inputsOutputs[paramName] = [priorInputs[sampleIter][paramIter]]
+                inputsOutputs[key] = [priorInputs[sampleIter][paramIter]]
     inputsOutputs['target'] = priorOutputs
 
     print inputsOutputs
@@ -43,7 +36,8 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6
     knownArgmax = bo.X[bo.Y.argmax()]
 
     nextArgmax = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=knownYmax, bounds=bo.bounds)
-    return zip(dictRanges.keys(), knownArgmax), knownYmax, zip(dictRanges.keys(), nextArgmax)
+    return zip(ranges.keys(), knownArgmax), knownYmax, zip(
+        ranges.keys(), nextArgmax)
 
 
 def posterior(bo, x, xmin=-2, xmax=10):
@@ -112,22 +106,32 @@ def plot_gp(bo, x, y):
 
 if __name__ == '__main__':
 
+    if True:
+        ranges = OrderedDict({
+            'w_pk': (0, 2),
+            'w_pr': (0, 2),
+            'w_dist': (0, 2),
+            'w_dist_decay': (700, 1300)})
+        testIn = [[0.76114678841435457, 0.818033407918765, 1.7549922964055682, 979.05896407346995]]
+        testOut = [1.1]
+        print BayesianOptimizeArgmax(testIn, testOut, ranges)
+
     # 1D black box function example
     if False:
-        ranges = [('x',(-2, 10))]
+        ranges = OrderedDict({'x':(-2, 10)})
         testIn = [[-2, 2.6812, 1.6509, 10]]
         testOut = [0.20166, 1.08328, 1.30455, 0.21180]
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 2D black box function example
     if False:
-        ranges = [('x',(0, 6)), ('y', (0, 8))]
+        ranges = OrderedDict({'x':(0, 6), 'y': (0, 8)})
         testIn = [[1.2295,2.0411], [1.6756,2.1539], [.57302,.8216], [.22063,2.4784],[.37829,5.7002],[6.0,6.0],[6.0,3.1094],[0.0,6.0],[0.3793,5.4137],[1.5898, 3.6339]]
         testOut = [.05501, .16466, .57302, .22063, .37829, .73542, .14238, .00002, .16007, 1.41949]
         print BayesianOptimizeArgmax(testIn, testOut, ranges)
 
     # 3D black box function example
-    if True:
+    if False:
         # ranges = {'x': (0, 6), 'y': (0, 8), 'z': (0, 1)}
         # testIn = {
         #     'x': [
@@ -141,7 +145,7 @@ if __name__ == '__main__':
         #     'z': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
         # }
 
-        ranges = [('x', (0, 3)), ('y', (3, 5)), ('z', (5, 10))]
+        ranges = OrderedDict({'x': (0, 3), 'y': (3, 5), 'z': (5, 10)})
 
         testIn = [[2.0,3.0,10.0], [2.0,3.0,10.0], [2.0, 3.0,10.0], [2.0,3.0,10.0], [2.0,3.0,10.0], [2.0, 3.0,10.0], [2.0,3.0,10.0], [2.0,3.0,10.0],[2.0,3.0,10.0],[2.0,3.0,10.0]]
         testOut = [
