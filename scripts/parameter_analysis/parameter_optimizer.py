@@ -35,9 +35,7 @@ def lhsSampler(ranges, numSamples):
             normalizedParam = float(range[1] - range[0]) * param + range[0]
             normalizedParams.append(normalizedParam)
         normalizedSamples.append(normalizedParams)
-
     return normalizedSamples
-
 
 def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, logPath, missionIteration):
     print parameterLabels, parameterValues
@@ -71,26 +69,35 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 
 # Return xx and yy parsed from file
 def parseSamples(file):
-    xx = {}
-    yy = {}
+    xx = []
+    yy = []
     if os.path.isfile(file):
         with open(file) as f:
+            f.readline() # skip the header
+
             for iter, line in enumerate(f):
                 values = line.strip().split('=')
-                xx[iter] = [float(i) for i in values[0].split(',')]
-                yy[iter] = [float(i) for i in values[1].split(',')]
+                print values
+                xx.append([float(i) for i in values[0].split(',')])
+                yy.append([float(i) for i in values[1].split(',')])
     return xx, yy
 
-def saveSamples(file, xx, yy, iter):
+def saveSamples(file, xx, yy, header):
+    # Write header if first time writing to file (it's a new file)
+    if not os.path.isfile(file):
+        with open(file, "a") as myfile:
+            myfile.write(",".join((str(x) for x in header)))
+
+    # Write the known data points            
     with open(file, "a") as myfile:
-        myfile.write('\n' + ",".join((str(x) for x in xx[iter])) + '=' + str(yy[iter]))
+        myfile.write(",".join((str(x) for x in xx)) + '=' + str(yy))
 
 # postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning only 1 value
 # numIterationsPerSample not supported yet, TODO
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
-             numInitialSamples=5, numIterationsPerSample=1, numSamples=10):
+             numInitialSamples=1, numIterationsPerSample=1, numSamples=1):
     folder = os.path.dirname(os.path.abspath(templateFilename))
     logName = os.path.splitext(os.path.basename(templateFilename))[0]
     samplesFile = folder + '/' + logName + '_samples.log'
@@ -98,8 +105,10 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     logging.basicConfig(filename=logFile, filemode='w', level=logging.DEBUG)
 
     xx, yy = parseSamples(samplesFile)
-    print 'Initial xx:', xx
-    print 'Initial yy:', yy
+    if len(xx) > 0 and len(yy) > 0:
+        logging.info('Samples from file'+samplesFile)
+        logging.info('Initial xx: ' + ','.join((str(x) for x in xx)))
+        logging.info('Initial yy: ' + ','.join((str(x) for x in yy)))
 
     # Initial new exploration parameters
     logging.info('Sampling State Space')
@@ -110,10 +119,10 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         newBatchStartingIter = simulationIter
         for params in new_xx:
             # Parse sample into template mission
-            logging.info('Generating Mission File with params: ' + ','.join((str(x) for x in params)))
+            logging.info('Generating Mission File with params: ' + ','.join((str(x) for x in zip(ranges.keys(),params))))
             missionFile = generateMissionFile(templateFilename, ranges.keys(), params, logPath, simulationIter)
 
-            xx[simulationIter] = params
+            xx.append(params)
 
             # Run the same params multiple times (in order to get a better average result)
             scrimmageProcesses = []
@@ -133,10 +142,10 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         # analysis for all mission results
         logging.info('Parsing Results')
         for iter in range(newBatchStartingIter,simulationIter):
-            yy[iter] = postScrimmageAnalysis(logPath+'iter-'+iter)
+            yy.append(postScrimmageAnalysis(logPath+'iter-'+str(iter)))
 
             # Append the new params and output
-            saveSamples(samplesFile, xx, yy, iter)
+            saveSamples(samplesFile, xx[iter], yy[iter], ranges.keys())
 
         # Use f_hat to guess some optimal params
         logging.info('Approximating function')
@@ -153,7 +162,10 @@ if __name__ == "__main__":
     # Demo
     test_ranges = {'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)}
     # folder = os.getcwd() + '/scripts/parameter_analysis/'
-    test_logPath = "~/swarm-log/analysis/"
-    optimize('task_assignment.xml', test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax, test_logPath)
+    test_logPath = "/home/kbowers6/swarm-log/analysis/"
+    optimize(
+        'task_assignment.xml',
+        test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax,
+        test_logPath)
 
     print 'Done'
