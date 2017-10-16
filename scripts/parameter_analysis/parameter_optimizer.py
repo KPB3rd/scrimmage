@@ -93,12 +93,12 @@ def saveSamples(file, xx, yy, header):
         myfile.write(",".join((str(x) for x in xx)) + '=' + str(yy) + '\n')
 
 
-# postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning list of output values
+# postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning an output value
 # numIterationsPerSample not supported yet, TODO
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
-             numInitialSamples=0, numIterationsPerSample=1, numSamples=0):
+             numExploreSamples=0, numIterationsPerSample=1, numExploitSamples=0):
     folder = os.path.dirname(os.path.abspath(templateFilename))
     logName = os.path.splitext(os.path.basename(templateFilename))[0]
     samplesFile = folder + '/' + logName + '_samples.log'
@@ -113,10 +113,10 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
 
     # Initial new exploration parameters
     logging.info('Sampling State Space')
-    new_xx = stateSpaceSampler(ranges, numInitialSamples)
+    new_xx = stateSpaceSampler(ranges, numExploreSamples)
     simulationIter = len(xx)
 
-    for loopIter in range(numSamples+1):
+    for loopIter in range(numExploitSamples+1):
         newBatchStartingIter = simulationIter
         for params in new_xx:
             # Parse sample into template mission
