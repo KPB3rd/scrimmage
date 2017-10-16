@@ -6,9 +6,9 @@ import pyDOE
 import subprocess
 from parse_utility import GetAverageUtility
 import numpy as np
-
+from collections import OrderedDict
 from bayesian_optimization import BayesianOptimizeArgmax
-
+import json
 import os.path
 import logging
 import threading
@@ -79,25 +79,26 @@ def parseSamples(file):
                 values = line.strip().split('=')
                 print values
                 xx.append([float(i) for i in values[0].split(',')])
-                yy.append([float(i) for i in values[1].split(',')])
+                yy.append(float(values[1]))
     return xx, yy
 
 def saveSamples(file, xx, yy, header):
     # Write header if first time writing to file (it's a new file)
     if not os.path.isfile(file):
         with open(file, "a") as myfile:
-            myfile.write(",".join((str(x) for x in header)))
+            myfile.write(",".join((str(x) for x in header)) + '\n')
 
-    # Write the known data points            
+    # Write the known data points
     with open(file, "a") as myfile:
-        myfile.write(",".join((str(x) for x in xx)) + '=' + str(yy))
+        myfile.write(",".join((str(x) for x in xx)) + '=' + str(yy) + '\n')
 
-# postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning only 1 value
+
+# postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning list of output values
 # numIterationsPerSample not supported yet, TODO
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
-             numInitialSamples=1, numIterationsPerSample=1, numSamples=1):
+             numInitialSamples=1, numIterationsPerSample=1, numSamples=2):
     folder = os.path.dirname(os.path.abspath(templateFilename))
     logName = os.path.splitext(os.path.basename(templateFilename))[0]
     samplesFile = folder + '/' + logName + '_samples.log'
@@ -150,17 +151,17 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         # Use f_hat to guess some optimal params
         logging.info('Approximating function')
         knownArgmax, expectedValue, nextArgmax = functionApproximator(xx, yy, ranges)
-        logging.debug('knownArgmax' + knownArgmax)
-        logging.debug('expectedValue' + expectedValue)
-        logging.debug('nextArgmax' + nextArgmax)
+        logging.debug('knownArgmax: ' + json.dumps(knownArgmax))
+        logging.debug('expectedValue: ' + json.dumps(expectedValue))
+        logging.debug('nextArgmax: ' + json.dumps(nextArgmax))
 
-        new_xx = nextArgmax
-
+        new_xx = [nextArgmax.values()]
+    logging.info('Optimization complete.')
     return knownArgmax, expectedValue
 
 if __name__ == "__main__":
     # Demo
-    test_ranges = {'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)}
+    test_ranges = OrderedDict({'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)})
     # folder = os.getcwd() + '/scripts/parameter_analysis/'
     test_logPath = "/home/kbowers6/swarm-log/analysis/"
     optimize(
