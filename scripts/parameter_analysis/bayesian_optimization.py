@@ -11,7 +11,6 @@ from matplotlib import gridspec
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
 # Returns (dict of known argmax, expectedValue, dict of potential argmax i.e. the next argmax to try)
 def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6):
-
     bo = BayesianOptimization(None, ranges)
 
     # BO requires a single dict with the keys being the parameters and 'target' which is the output from the function
@@ -25,7 +24,6 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6
                 inputsOutputs[key] = [priorInputs[sampleIter][paramIter]]
     inputsOutputs['target'] = priorOutputs
 
-    print inputsOutputs
     bo.initialize(inputsOutputs)
 
     # Maximize the function approximation to find the best parameters (0 iterations since we dont have an explicit function to sample)

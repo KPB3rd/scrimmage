@@ -2,9 +2,8 @@ from mako.template import Template
 from mako.runtime import Context
 from StringIO import StringIO
 import os
-import pyDOE
+from SettingsParser import *
 import subprocess
-from parse_utility import GetAverageUtility
 import numpy as np
 from collections import OrderedDict
 from bayesian_optimization import BayesianOptimizeArgmax
@@ -21,21 +20,7 @@ import xml.etree.ElementTree as ET
 import queue
 from concurrent import futures
 
-def lhsSampler(ranges, numSamples):
-    if numSamples == 0:
-        return []
 
-    paramSamples = pyDOE.lhs(len(ranges), samples=numSamples)
-
-    # Vectorize to make faster
-    normalizedSamples = []
-    for iter, sample in enumerate(paramSamples):
-        normalizedParams = []
-        for range, param in zip(ranges.values(), sample):
-            normalizedParam = float(range[1] - range[0]) * param + range[0]
-            normalizedParams.append(normalizedParam)
-        normalizedSamples.append(normalizedParams)
-    return normalizedSamples
 
 def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, logPath, missionIteration):
     print parameterLabels, parameterValues
@@ -160,12 +145,31 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     return knownArgmax, expectedValue
 
 if __name__ == "__main__":
-    # Demo
+    # Example input
     test_ranges = OrderedDict({'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)})
-    test_logPath = "/home/kbowers6/swarm-log/analysis/"
-    print optimize(
-        'task_assignment.xml',
-        test_ranges, lhsSampler, GetAverageUtility, BayesianOptimizeArgmax,
-        test_logPath)
 
-    print 'Done'
+    # Parse the configuration from the settings file
+    parser = SettingsParser('settings.json')
+    missionFile = parser.getMissionFile()
+    logPath = parser.getLogPath()
+    sampler = parser.getStateSpaceSampler()
+    postMissionAnalyzer = parser.getPostMissionAnalyzer()
+    fApprox = parser.getFunctionApproximator()
+    numExploreSamples = parser.getNumExploreSamples()
+    numIterationsPerSample = parser.getNumIterationsPerSample()
+    numExploitSamples = parser.getNumExploitSamples()
+    ranges = parser.getRanges()
+
+    knownArgmax, expectedValue = optimize(
+        missionFile,
+        test_ranges,
+        sampler,
+        postMissionAnalyzer,
+        fApprox,
+        logPath,
+        numExploreSamples=numExploreSamples,
+        numIterationsPerSample=numIterationsPerSample,
+        numExploitSamples=numExploitSamples)
+
+    print 'Known Argmax:', knownArgmax
+    print 'Expected Value:', expectedValue
