@@ -20,7 +20,7 @@ class SettingsParser:
 
 
     def getStateSpaceSampler(self):
-        if self.settings['StateSpaceSampler'] == 'LHC':
+        if self.settings['StateSpaceSampler'] == 'LHS':
             return lhsSampler
         else:
             print 'Please select a valid state space sampler'

@@ -1,7 +1,7 @@
 {
 	"MissionFilePath": "task_assignment.xml",
 	"LogPath": "/home/kbowers6/swarm-log/analysis/",
-	"StateSpaceSampler": "LHC",
+	"StateSpaceSampler": "LHS",
 	"PostMissionAnalyzer": "STOT",
 	"FunctionApproximator": "BO",
 	"NumExploreSamples": 0,
