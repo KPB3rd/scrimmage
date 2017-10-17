@@ -1,11 +1,8 @@
 from mako.template import Template
 from mako.runtime import Context
-try:
-    from StringIO import StringIO
-except ImportError:
-    import io
+from StringIO import StringIO
 import os
-from settings_parser import *
+from SettingsParser import *
 import subprocess
 import numpy as np
 from collections import OrderedDict
@@ -20,17 +17,13 @@ import signal
 import sys
 import xml.etree.ElementTree as ET
 
-try:
-    import Queue
-except ImportError:
-    import queue
-
+import queue
 from concurrent import futures
 
 
 
 def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, logPath, missionIteration):
-    print(parameterLabels, parameterValues)
+    print parameterLabels, parameterValues
 
     if len(parameterLabels) != len(parameterValues):
         raise ValueError('Parameter Labels and Values are mismatched. (Labels=', len(parameterLabels), 'values=', len(parameterValues))
@@ -56,7 +49,7 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 
         return fullFilePath
     except NameError:
-        print('Detected incorrect or missing parameters in mission xml.')
+        print 'Detected incorrect or missing parameters in mission xml.'
         quit()
 
 # Return xx and yy parsed from file
@@ -69,7 +62,7 @@ def parseSamples(file):
 
             for iter, line in enumerate(f):
                 values = line.strip().split('=')
-                print(values)
+                print values
                 xx.append([float(i) for i in values[0].split(',')])
                 yy.append(float(values[1]))
     return xx, yy
@@ -86,6 +79,7 @@ def saveSamples(file, xx, yy, header):
 
 
 # postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning an output value
+# numIterationsPerSample not supported yet, TODO
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
@@ -112,7 +106,7 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
         for params in new_xx:
             # Parse sample into template mission
             logging.info('Generating Mission File with params: ' + ','.join((str(x) for x in zip(ranges.keys(),params))))
-            missionFile = generateMissionFile(templateFilename, list(ranges.keys()), params, logPath, simulationIter)
+            missionFile = generateMissionFile(templateFilename, ranges.keys(), params, logPath, simulationIter)
 
             xx.append(params)
 
@@ -123,12 +117,11 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
                 logging.info('Executing Mission File')
                 scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
 
-            # Wait for all processes to finish
-            for process in scrimmageProcesses:
-                process.wait()
+                # Wait for all processes to finish
+                for process in scrimmageProcesses:
+                    process.wait()
 
-            os.remove(missionFile)
-            logging.info('Completed Scrimmage Simulations')
+                logging.info('Completed Scrimmage Simulations')
 
             simulationIter+=1
 
@@ -152,6 +145,9 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     return knownArgmax, expectedValue
 
 if __name__ == "__main__":
+    # Example input
+    test_ranges = OrderedDict({'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)})
+
     # Parse the configuration from the settings file
     parser = SettingsParser('settings.json')
     missionFile = parser.getMissionFile()
@@ -166,7 +162,7 @@ if __name__ == "__main__":
 
     knownArgmax, expectedValue = optimize(
         missionFile,
-        ranges,
+        test_ranges,
         sampler,
         postMissionAnalyzer,
         fApprox,
@@ -175,5 +171,5 @@ if __name__ == "__main__":
         numIterationsPerSample=numIterationsPerSample,
         numExploitSamples=numExploitSamples)
 
-    print('Known Argmax:', knownArgmax)
-    print('Expected Value:', expectedValue)
+    print 'Known Argmax:', knownArgmax
+    print 'Expected Value:', expectedValue
