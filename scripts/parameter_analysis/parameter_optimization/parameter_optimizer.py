@@ -2,7 +2,7 @@ from mako.template import Template
 from mako.runtime import Context
 from StringIO import StringIO
 import os
-from SettingsParser import *
+from settings_parser import *
 import subprocess
 import numpy as np
 from collections import OrderedDict
@@ -117,11 +117,12 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
                 logging.info('Executing Mission File')
                 scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
 
-                # Wait for all processes to finish
-                for process in scrimmageProcesses:
-                    process.wait()
+            # Wait for all processes to finish
+            for process in scrimmageProcesses:
+                process.wait()
 
-                logging.info('Completed Scrimmage Simulations')
+            os.remove(missionFile)
+            logging.info('Completed Scrimmage Simulations')
 
             simulationIter+=1
 

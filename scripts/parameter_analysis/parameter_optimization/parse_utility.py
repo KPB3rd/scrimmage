@@ -1,25 +1,20 @@
 import os
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
-def GetUtility(fileName):
-    f = open(fileName, 'r')
-    # Get last line
-    for line in f:
-        pass
-    lastLine = line.split(',')
-
-    utility = lastLine[-1]
-
+def GetUtility(fileName, columnName):
+    df = pd.read_csv(fileName)
+    utility = df[columnName].mean()
     return utility
 
-def GetAverageUtility(directory):
+def GetAverageUtility(directory, columnName='Utility'):
     files = os.listdir(directory)
 
     sumUtility = 0
     for file in files:
-        utility = GetUtility(directory + '/' + file + '/summary.csv')
-        sumUtility += float(utility)
+        utility = GetUtility(directory + '/' + file + '/summary.csv', columnName)
+        sumUtility += utility
 
     avgUtility = sumUtility / len(files)
     return avgUtility

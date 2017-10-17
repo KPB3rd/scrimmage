@@ -2,11 +2,11 @@
 	"MissionFilePath": "task_assignment.xml",
 	"LogPath": "/home/kbowers6/swarm-log/analysis/",
 	"StateSpaceSampler": "LHS",
-	"PostMissionAnalyzer": "STOT",
+	"UtilityColumnName": "Utility",
 	"FunctionApproximator": "BO",
 	"NumExploreSamples": 0,
 	"NumIterationsPerSample": 1,
-	"NumExploitSamples": 0,
+	"NumExploitSamples": 1,
 	"Ranges": {
 		"w_pk": [0, 2],
 		"w_pr": [0, 2],
