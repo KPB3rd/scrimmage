@@ -146,9 +146,6 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     return knownArgmax, expectedValue
 
 if __name__ == "__main__":
-    # Example input
-    test_ranges = OrderedDict({'w_pk': (0, 2), 'w_pr': (0, 2), 'w_dist': (0, 2), 'w_dist_decay': (700, 1300)})
-
     # Parse the configuration from the settings file
     parser = SettingsParser('settings.json')
     missionFile = parser.getMissionFile()
@@ -163,7 +160,7 @@ if __name__ == "__main__":
 
     knownArgmax, expectedValue = optimize(
         missionFile,
-        test_ranges,
+        ranges,
         sampler,
         postMissionAnalyzer,
         fApprox,

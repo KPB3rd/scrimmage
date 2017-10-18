@@ -22,6 +22,8 @@ class SettingsParser:
     def getStateSpaceSampler(self):
         if self.settings['StateSpaceSampler'] == 'LHS':
             return lhsSampler
+        elif self.settings['StateSpaceSampler'] == 'GridSearch':
+            return gridSearch
         else:
             print 'Please select a valid state space sampler'
             quit()
