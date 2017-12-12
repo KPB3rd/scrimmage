@@ -7,4 +7,7 @@
   <vel_max>1</vel_max>
   <enable_roll>false</enable_roll>
   <write_csv>false</write_csv>
+  <ext_force_x>0.0</ext_force_x>
+  <ext_force_y>0.0</ext_force_y>
+  <ext_force_z>0.0</ext_force_z>
 </params>

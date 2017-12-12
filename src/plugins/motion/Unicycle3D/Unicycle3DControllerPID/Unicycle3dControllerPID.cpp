@@ -83,7 +83,6 @@ void Unicycle3DControllerPID::init(std::map<std::string, std::string> &params)
     set_pid(heading_pid_, params["heading_pid"], true);
     set_pid(alt_pid_, params["alt_pid"], false);
     set_pid(vel_pid_, params["vel_pid"], false);
-    u_ = std::make_shared<Eigen::Vector3d>();
 }
 
 bool Unicycle3DControllerPID::step(double t, double dt)
@@ -101,7 +100,7 @@ bool Unicycle3DControllerPID::step(double t, double dt)
     vel_pid_.set_setpoint(desired_state_->vel()(0));
     double u_thrust = vel_pid_.step(dt, state_->vel().norm());
 
-    (*u_) << u_thrust, roll_error, pitch_error;
+    u_ << u_thrust, roll_error, pitch_error;
     return true;
 }
 } // namespace controller

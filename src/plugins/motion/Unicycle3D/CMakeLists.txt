@@ -33,6 +33,7 @@ install(TARGETS ${LIBRARY_NAME}
 )
 
 add_subdirectory(Unicycle3DControllerDirect)
+add_subdirectory(Unicycle3DControllerPID)
 
 # Push up the PROJECT_PLUGINS variable
 set(PROJECT_PLUGINS ${PROJECT_PLUGINS} ${LIBRARY_NAME} PARENT_SCOPE)

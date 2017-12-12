@@ -98,6 +98,10 @@ bool Unicycle3D::init(std::map<std::string, std::string> &info,
     vel_max_ = std::stod(params.at("vel_max"));
     enable_roll_ = sc::get<bool>("enable_roll", params, false);
     write_csv_ = sc::get<bool>("write_csv", params, false);
+    double ext_force_x = sc::get<double>("ext_force_x", params, 0.0);
+    double ext_force_y = sc::get<double>("ext_force_y", params, 0.0);
+    double ext_force_z = sc::get<double>("ext_force_z", params, 0.0);
+    ext_force_ = {ext_force_x, ext_force_y, ext_force_z};
 
     x_[U] = 0;
     x_[V] = 0;
