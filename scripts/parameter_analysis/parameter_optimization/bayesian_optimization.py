@@ -10,7 +10,7 @@ from matplotlib import gridspec
 # acq can be 'ucb' (Upper Confidence Bound) or 'ei' (Expected Improvement)
 # kappa is exploration vs exploitation. 10 -> much exploration, 1 -> extreme exploitation
 # Returns (dict of known argmax, expectedValue, dict of potential argmax i.e. the next argmax to try)
-def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6):
+def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6, randomSeed=1):
     bo = BayesianOptimization(None, ranges)
 
     # BO requires a single dict with the keys being the parameters and 'target' which is the output from the function
@@ -33,7 +33,7 @@ def BayesianOptimizeArgmax(priorInputs, priorOutputs, ranges, acq='ucb', kappa=6
     knownYmax = bo.Y.max()
     knownArgmax = bo.X[bo.Y.argmax()]
 
-    nextArgmax = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=knownYmax, bounds=bo.bounds)
+    nextArgmax = helpers.acq_max(ac=bo.util.utility, gp=bo.gp, y_max=knownYmax, bounds=bo.bounds, random_state=np.random.RandomState(randomSeed))
     return OrderedDict(zip(ranges.keys(), knownArgmax)), \
             knownYmax, \
             OrderedDict(zip(ranges.keys(), nextArgmax))
