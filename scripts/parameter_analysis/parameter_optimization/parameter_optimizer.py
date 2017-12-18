@@ -146,8 +146,17 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     return knownArgmax, expectedValue
 
 if __name__ == "__main__":
+    lastArg = str(sys.argv[len(sys.argv)-1])
+    if '.json' in lastArg:
+        logPath = lastArg
+    elif lastArg == 'parameter_optimizer.py':
+        logPath = 'settings.json'
+    else:
+        print 'Please correctly specify the settings file (default: settings.json)'
+        quit()
+
     # Parse the configuration from the settings file
-    parser = SettingsParser('settings.json')
+    parser = SettingsParser(logPath)
     missionFile = parser.getMissionFile()
     logPath = parser.getLogPath()
     sampler = parser.getStateSpaceSampler()
