@@ -4,6 +4,7 @@ from samplers import *
 from parse_utility import GetAverageUtility
 from collections import OrderedDict
 from functools import partial
+import os
 
 
 class SettingsParser:
@@ -16,7 +17,7 @@ class SettingsParser:
 
 
     def getLogPath(self):
-        return self.settings['LogPath']
+        return os.path.join(self.settings['LogPath'] ,'') # add a '/' to the end if not there already
 
 
     def getStateSpaceSampler(self):

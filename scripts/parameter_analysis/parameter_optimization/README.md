@@ -68,4 +68,4 @@ After configuration, begin the analysis:
 
 This tool stores all results in X_samples.log alongside the mission file and will use these additional sample points if executed again.
 
-In the **LogPath** directory, the analyzer will generate *iter-N* folders, one for each parameter sample. Each of these folders contain **NumIterationsPerSample** number of missions.
+In the **LogPath** directory, the analyzer will generate *iter-N* folders, one for each parameter sample. Each of these folders contain **NumIterationsPerSample** number of missions. If you see that *iter-N* does not begin at 0, this means that there are previously computed utilities in X_samples.log and *N* maintains the iteration count.
