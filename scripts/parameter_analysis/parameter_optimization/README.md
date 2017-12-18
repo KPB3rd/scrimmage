@@ -62,9 +62,11 @@ The analyzer will first create **NumExploreSamples** (e.g. 10) samples without t
 
 After the exploration step, the analyzer can begin to iteratively exploit. **NumExploitSamples** (e.g. 15) defines how many iterations of further exploration/exploitation to sample. BO's kappa value controls the aggressiveness of the exploitation. Scrimmage would run 15 * 5 = 75 more times to attempt maximizing the function.
 
+The settings file can be specified at command line. If not declared, it will by default look for *settings.json*.
+
 After configuration, begin the analysis:
 
-    python parameter_optimizer.py
+    python parameter_optimizer.py <SETTINGS_FILE>.json
 
 This tool stores all results in X_samples.log alongside the mission file and will use these additional sample points if executed again.
 
