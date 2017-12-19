@@ -2,7 +2,7 @@
 
 This tool finds the optimal parameters for a given scrimmage mission. It uses a function approximator to iteratively learn the utility of a mission given some parameters. A key feature is the ability to intelligently choose the next parameters to simulate, balancing exploration and exploitation of the state space in order to converge to optimal parameters.
 
-First it creates a robust list of parameter samples to simulate in scrimmage in order to explore the parameter space. After collecting the utility output of each of these parameter samples, it then iteraively chooses new parameter samples in order to learn the most about the function, while also trying to find the argmax i.e. the best parameters for the mission. After completing the user-defined number of iterations, it will output the argmax and expected value of the mission.
+First it creates a robust list of parameter samples to simulate in scrimmage in order to explore the parameter space. After collecting the utility output of each of these parameter samples, it then iteratively chooses new parameter samples in order to learn the most about the function, while also trying to find the argmax i.e. the best parameters for the mission. After completing the user-defined number of iterations, it will output the argmax and expected value of the mission.
 
 ## Getting Started
 
