@@ -135,6 +135,13 @@ void Straight::init(std::map<std::string, std::string> &params) {
 
 bool Straight::step_autonomy(double t, double dt) {
 
+    double heading00 = atan2(0 - state_->pos()(1), 0 - state_->pos()(0));
+    desired_state_->quat().set(0, 0, heading00); // roll, pitch, heading
+    desired_state_->pos()(0) = 0;
+    desired_state_->pos()(1) = 0;
+
+    return true;
+
     // Read data from sensors...
     sc::State own_state = *state_;
 
