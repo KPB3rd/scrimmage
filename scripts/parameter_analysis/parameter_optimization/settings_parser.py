@@ -19,10 +19,16 @@ class SettingsParser:
     def getLogPath(self):
         return os.path.join(self.settings['LogPath'] ,'') # add a '/' to the end if not there already
 
+    def getNoOptimization(self):
+        return self.settings['NoOptimization']
 
     def getStateSpaceSampler(self):
         if self.settings['StateSpaceSampler'] == 'LHS':
-            return lhsSampler
+            if getNoOptimization():
+                print "Please set the State Space Sampler to 'GridSearch'" 
+                quit()
+            else:
+                return lhsSampler
         elif self.settings['StateSpaceSampler'] == 'GridSearch':
             return gridSearch
         else:
