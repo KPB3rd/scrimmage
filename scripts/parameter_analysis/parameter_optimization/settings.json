@@ -3,6 +3,7 @@
 	"LogPath": "/home/kbowers6/swarm-log/analysis/",
 	"StateSpaceSampler": "LHS",
 	"UtilityColumnName": "Utility",
+	"NoOptimization": false,
 	"FunctionApproximator": "BO",
 	"NumExploreSamples": 0,
 	"NumIterationsPerSample": 1,

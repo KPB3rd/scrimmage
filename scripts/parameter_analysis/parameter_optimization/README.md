@@ -1,6 +1,6 @@
 # Parameter Optimization Tool
 
-This tool finds the optimal parameters for a given scrimmage mission. It uses a function approximator to iteratively learn the utility of a mission given some parameters. A key feature is the ability to intelligently choose the next parameters to simulate, balancing exploration and exploitation of the state space in order to converge to optimal parameters.
+This tool finds the optimal parameters for a given scrimmage mission. It uses a function approximator to iteratively learn the utility of a mission given some parameters. A key feature is the ability to intelligently choose the next parameters to simulate- balancing exploration and exploitation of the state space in order to converge to optimal parameters.
 
 First it creates a robust list of parameter samples to simulate in scrimmage in order to explore the parameter space. After collecting the utility output of each of these parameter samples, it then iteratively chooses new parameter samples in order to learn the most about the function, while also trying to find the argmax i.e. the best parameters for the mission. After completing the user-defined number of iterations, it will output the argmax and expected value of the mission.
 
@@ -10,12 +10,12 @@ First it creates a robust list of parameter samples to simulate in scrimmage in 
 
 In addition to scrimmage, install these python modules. 
 
-    pip install bayesian-optimization
+    pip install -Iv bayesian-optimization==0.5.0
     pip install Mako
 
 ### Templatize the targeted mission file.
 
-After choosing the scrimmage mission file, you need to add tags for the parameters that you want optimized. In your mission file, insert environment variable notation for the chosen parameters, e.g. replace weight_priority=".8" with weight_priority="${w_pr}". For example:
+After choosing the scrimmage mission file, add tags for the parameters to be optimized. In your mission file, insert environment variable notation for the chosen parameters, e.g. replace weight_priority=".8" with weight_priority="${w_pr}". For example:
 
     <autonomy order="2" 
     weight_priority="${w_pr}" weight_pk="${w_pk}"
@@ -32,6 +32,8 @@ In the above example, parameters *w_pr*, *w_pk*, *w_dist*, and *w_dist_decay* wi
 
 In order to optimize the mission, this tool needs to map parameters to some Utility (value) of the mission. To do this, create a scrimmage metric plugin (or add to an existing one) that will create a column in the summary.csv for the utility of the mission- a single float value that represents the value of the mission results.
 
+If the user wants to collect mission data without optimization, this metric plugin is unnecessary. It is assumed the user will make a script to manually analyze the missions files created by this tool.
+
 ### Configure settings.json
 
 Define the **MissionFilePath** and **LogPath** directories.
@@ -41,6 +43,8 @@ The **StateSpaceSampler** is used to create an initial sampling of the parameter
 **UtilityColumnName** is the column name in summary.csv containing the utility value of the mission.
 
 The **FunctionApproximator** will be the method used to map inputs to outputs and estimate the argmax (best parameters) of the mission. Only Bayesian Optimization (BO) is supported currently. 
+
+**NoOptimization** is the flag used to toggle the optimization step. Set to "true" to run batch missions without optimization. This mode will only perform the exploration step for Grid Search, and skip the exploitation step.
 
 **FunctionApproximatorParameters** is the list of parameters specific to the chosen FunctionApproximator.
 
@@ -56,9 +60,9 @@ The **FunctionApproximator** will be the method used to map inputs to outputs an
 
 **Ranges** is the collection of ranges for parameters found in the mission file.
 
-### Begin Analysis
+### How to Start Optimization Analysis
 
-The analyzer will first create **NumExploreSamples** (e.g. 10) samples without trying to optimize- just to learn and explore the space. Scrimmage will then run the mission with those sampled parameters, each sample **NumIterationsPerSample** (e.g. 5) times. This means using the example values, scrimmage would run 10 * 5 = 50 times. 
+If optimizing, the analyzer will first create **NumExploreSamples** (e.g. 10) samples without trying to optimize- just to learn and explore the space. Scrimmage will then run the mission with those sampled parameters, each sample **NumIterationsPerSample** (e.g. 5) times. This means using the example values, scrimmage would run 10 * 5 = 50 times. 
 
 After the exploration step, the analyzer can begin to iteratively exploit. **NumExploitSamples** (e.g. 15) defines how many iterations of further exploration/exploitation to sample. BO's kappa value controls the aggressiveness of the exploitation. Scrimmage would run 15 * 5 = 75 more times to attempt maximizing the function.
 
@@ -68,8 +72,12 @@ After configuration, begin the analysis:
 
     python parameter_optimizer.py <SETTINGS_FILE>.json
 
-In the **LogPath** directory, the analyzer will generate *iter-N* folders, one for each parameter sample. Each of these folders contain **NumIterationsPerSample** number of missions. If you see that *iter-N* does not begin at 0, this means that there are previously computed utilities in X_samples.log and *N* maintains the iteration count.
+In the **LogPath** directory, the analyzer will generate *iter-N* folders, one for each parameter sample. Each of these folders contain **NumIterationsPerSample** number of missions. If *iter-N* does not begin at 0, this means that there are previously computed utilities in X_samples.log and *N* maintains the iteration count.
 
 This tool stores all results in X_samples.log alongside the mission file and will use these additional sample points if executed again. The computed argmax and expected value is printed in the terminal after completion.
 
+### How to Collect Data without Optimization
 
+This analyzer can also be used to execute batch mission runs without running optimization. The user can specify the parameter settings, and then make their own scripts to analyze the resulting mission files. The metric plugin is unnecessary and can be excluded.
+
+To collect data without optimization, simply use the Grid Search sampler and set **NoOptimization** to true. This means the tool will run missions with the specified parameters, but will not create new parameters via optimization.

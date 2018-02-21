@@ -83,7 +83,7 @@ def saveSamples(file, xx, yy, header):
 # ranges is a dict of tuple ranges keyed by param name
 def optimize(templateFilename, ranges, stateSpaceSampler,
              postScrimmageAnalysis, functionApproximator, logPath,
-             numExploreSamples=0, numIterationsPerSample=1, numExploitSamples=0):
+             numExploreSamples=0, numIterationsPerSample=1, numExploitSamples=0, noOptimization=False):
     folder = os.path.dirname(os.path.abspath(templateFilename))
     logName = os.path.splitext(os.path.basename(templateFilename))[0]
     samplesFile = folder + '/' + logName + '_samples.log'
@@ -100,6 +100,9 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     logging.info('Sampling State Space')
     new_xx = stateSpaceSampler(ranges, numExploreSamples)
     simulationIter = len(xx)
+
+    if noOptimization:
+        numExploitSamples = 0 # being explicit- dont exploit because we arent optimizing
 
     for loopIter in range(numExploitSamples+1):
         newBatchStartingIter = simulationIter
@@ -127,22 +130,30 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
             simulationIter+=1
 
         # analysis for all mission results
-        logging.info('Parsing Results')
         for iter in range(newBatchStartingIter,simulationIter):
-            yy.append(postScrimmageAnalysis(logPath+'iter-'+str(iter)))
+            if noOptimization:
+                yy.append(-1)
+            else:
+                logging.info('Parsing Results')
+                yy.append(postScrimmageAnalysis(logPath+'iter-'+str(iter)))
 
             # Append the new params and output
             saveSamples(samplesFile, xx[iter], yy[iter], ranges.keys())
 
-        # Use f_hat to guess some optimal params
-        logging.info('Approximating function')
-        knownArgmax, expectedValue, nextArgmax = functionApproximator(xx, yy, ranges)
-        logging.debug('knownArgmax: ' + json.dumps(knownArgmax))
-        logging.debug('expectedValue: ' + json.dumps(expectedValue))
-        logging.debug('nextArgmax: ' + json.dumps(nextArgmax))
+        if not noOptimization: # yes optimize
+            # Use f_hat to guess some optimal params
+            logging.info('Approximating function')
+            knownArgmax, expectedValue, nextArgmax = functionApproximator(xx, yy, ranges)
+            logging.debug('knownArgmax: ' + json.dumps(knownArgmax))
+            logging.debug('expectedValue: ' + json.dumps(expectedValue))
+            logging.debug('nextArgmax: ' + json.dumps(nextArgmax))
 
-        new_xx = [nextArgmax.values()]
-    logging.info('Optimization complete.')
+            new_xx = [nextArgmax.values()]
+        else:
+            knownArgmax = -1, expectedValue = -1
+            break # dont loop again, because we are not optimizing
+
+    logging.info('Analysis complete.')
     return knownArgmax, expectedValue
 
 if __name__ == "__main__":
@@ -159,6 +170,7 @@ if __name__ == "__main__":
     parser = SettingsParser(logPath)
     missionFile = parser.getMissionFile()
     logPath = parser.getLogPath()
+    noOptimizationFlag = parser.getNoOptimization()
     sampler = parser.getStateSpaceSampler()
     postMissionAnalyzer = parser.getPostMissionAnalyzer()
     fApprox = parser.getFunctionApproximator()
@@ -176,7 +188,9 @@ if __name__ == "__main__":
         logPath,
         numExploreSamples=numExploreSamples,
         numIterationsPerSample=numIterationsPerSample,
-        numExploitSamples=numExploitSamples)
+        numExploitSamples=numExploitSamples,
+        noOptimization=noOptimizationFlag)
 
-    print 'Known Argmax:', knownArgmax
-    print 'Expected Value:', expectedValue
+    if not noOptimizationFlag:
+        print 'Known Argmax:', knownArgmax
+        print 'Expected Value:', expectedValue
