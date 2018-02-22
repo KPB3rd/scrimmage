@@ -13,35 +13,59 @@ class SettingsParser:
             self.settings = json.load(data_file)
 
     def getMissionFile(self):
-        return self.settings['MissionFilePath']
+        if 'MissionFilePath' in self.settings:
+            return self.settings['MissionFilePath']
+        else:
+            print 'Please specify the MissionFilePath.'
+            quit()
 
 
     def getLogPath(self):
-        return os.path.join(self.settings['LogPath'] ,'') # add a '/' to the end if not there already
+        if 'LogPath' in self.settings:
+            return os.path.join(self.settings['LogPath'], '')  # add a '/' to the end if not there already
+        else:
+            print 'Please specify the LogPath.'
+            quit()
 
     def getNoOptimization(self):
-        return self.settings['NoOptimization']
+        if 'NoOptimization' in self.settings:
+            return self.settings['NoOptimization']
+        else:
+            return False
 
     def getStateSpaceSampler(self):
+        if self.getNoOptimization():
+            return gridSearch
+
         if self.settings['StateSpaceSampler'] == 'LHS':
-            if getNoOptimization():
-                print "Please set the State Space Sampler to 'GridSearch'" 
+            if self.getNoOptimization():
+                print "Please set the State Space Sampler to 'GridSearch'."
                 quit()
             else:
                 return lhsSampler
         elif self.settings['StateSpaceSampler'] == 'GridSearch':
             return gridSearch
         else:
-            print 'Please select a valid state space sampler'
+            print 'Please select a valid state space sampler.'
             quit()
 
     def getPostMissionAnalyzer(self):
-        params = {}
-        params['columnName'] = self.settings['UtilityColumnName']
-        return partial(GetAverageUtility, **params)
+        if 'UtilityColumnName' not in self.settings:
+            if self.getNoOptimization(
+            ):  # can only be excluded if not optimizing
+                return None
+            else:
+                print 'Please specify the UtilityColumnName, or enable NoOptimization.'
+                quit()
+        else:
+            params = {}
+            params['columnName'] = self.settings['UtilityColumnName']
+            return partial(GetAverageUtility, **params)
 
 
     def getFunctionApproximator(self):
+        if 'FunctionApproximatorParameters' not in self.settings:
+            return None
         if self.settings['FunctionApproximator'] == 'BO':
             params = {}
             params['acq'] = self.settings['FunctionApproximatorParameters']['acq']
@@ -54,19 +78,29 @@ class SettingsParser:
 
 
     def getNumExploreSamples(self):
-        return self.settings['NumExploreSamples']
-
+        if 'NumExploreSamples' in self.settings:
+            return self.settings['NumExploreSamples']
+        else:
+            print 'Please specify NumExploreSamples.'
+            quit()
 
     def getNumIterationsPerSample(self):
-        return self.settings['NumIterationsPerSample']
+        if 'NumIterationsPerSample' in self.settings:
+            return self.settings['NumIterationsPerSample']
+        else:
+            return 1
 
 
     def getNumExploitSamples(self):
-        return self.settings['NumExploitSamples']
+        if 'NumExploitSamples' in self.settings:
+            return self.settings['NumExploitSamples']
+        else:
+            return 0
 
 
     def getRanges(self):
         ranges = OrderedDict()
-        for key, value in self.settings['Ranges'].items():
-            ranges[key] = (value[0],value[1])
+        if 'Ranges' in self.settings:
+            for key, value in self.settings['Ranges'].items():
+                ranges[key] = (value[0],value[1])
         return ranges

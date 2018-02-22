@@ -8,6 +8,7 @@ import numpy as np
 from collections import OrderedDict
 from bayesian_optimization import BayesianOptimizeArgmax
 import json
+import shutil
 import os.path
 import logging
 import threading
@@ -21,12 +22,14 @@ import queue
 from concurrent import futures
 
 
-
-def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, logPath, missionIteration):
+def generateMissionFile(templateFullFilename, parameterLabels, parameterValues,
+                        logPath, missionIteration):
     print parameterLabels, parameterValues
 
     if len(parameterLabels) != len(parameterValues):
-        raise ValueError('Parameter Labels and Values are mismatched. (Labels=', len(parameterLabels), 'values=', len(parameterValues))
+        raise ValueError(
+            'Parameter Labels and Values are mismatched. (Labels=',
+            len(parameterLabels), 'values=', len(parameterValues))
         quit()
 
     # Load the mission file
@@ -34,7 +37,9 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
 
     try:
         # Add log path
-        parameters = dict(zip(parameterLabels + ['log_path'], parameterValues + [logPath + 'iter-' + str(missionIteration)]))
+        parameters = dict(
+            zip(parameterLabels + ['log_path'],
+                parameterValues + [logPath + 'iter-' + str(missionIteration)]))
 
         # Parse in the params
         missionData = myTemplate.render(**parameters)
@@ -52,13 +57,14 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues, 
         print 'Detected incorrect or missing parameters in mission xml.'
         quit()
 
+
 # Return xx and yy parsed from file
 def parseSamples(file):
     xx = []
     yy = []
     if os.path.isfile(file):
         with open(file) as f:
-            f.readline() # skip the header
+            f.readline()  # skip the header
 
             for iter, line in enumerate(f):
                 values = line.strip().split('=')
@@ -66,6 +72,7 @@ def parseSamples(file):
                 xx.append([float(i) for i in values[0].split(',')])
                 yy.append(float(values[1]))
     return xx, yy
+
 
 def saveSamples(file, xx, yy, header):
     # Write header if first time writing to file (it's a new file)
@@ -78,21 +85,56 @@ def saveSamples(file, xx, yy, header):
         myfile.write(",".join((str(x) for x in xx)) + '=' + str(yy) + '\n')
 
 
+def RunScrimmage(missionFile):
+    # Run the same params multiple times (in order to get a better average result)
+    scrimmageProcesses = []
+    filename = os.path.basename(missionFile)
+    mydir = os.path.dirname(os.path.realpath(__file__))
+    shutil.copy2(missionFile, mydir)
+
+    for paramScrimmageIter in range(numIterationsPerSample):
+        # run scrimmage
+        logging.info('Executing Mission File')
+        scrimmageProcesses.append(subprocess.Popen(["scrimmage", filename]))
+
+    # Wait for all processes to finish
+    for process in scrimmageProcesses:
+        process.wait()
+
+    logging.info('Completed Scrimmage Simulations')
+
+
 # postScrimmageAnalysis gets called on a directory of mission files, not a specific mission, returning an output value
-# numIterationsPerSample not supported yet, TODO
 # ranges is a dict of tuple ranges keyed by param name
-def optimize(templateFilename, ranges, stateSpaceSampler,
-             postScrimmageAnalysis, functionApproximator, logPath,
-             numExploreSamples=0, numIterationsPerSample=1, numExploitSamples=0, noOptimization=False):
-    folder = os.path.dirname(os.path.abspath(templateFilename))
-    logName = os.path.splitext(os.path.basename(templateFilename))[0]
-    samplesFile = folder + '/' + logName + '_samples.log'
-    logFile = folder + '/' + logName + '.log'
-    logging.basicConfig(filename=logFile, filemode='w', level=logging.DEBUG)
+def execute(templateFilePath,
+            ranges,
+            stateSpaceSampler,
+            postScrimmageAnalysis,
+            functionApproximator,
+            logPath,
+            numExploreSamples=0,
+            numIterationsPerSample=1,
+            numExploitSamples=0,
+            noOptimization=False):
+    # Initialize Logging
+    folder = os.path.dirname(templateFilePath)
+    filename = os.path.basename(templateFilePath)
+    filenameNoExt = os.path.splitext(filename)[0]
+    samplesFile = folder + '/' + filenameNoExt + '_samples.log'
+    logging.basicConfig(filename=filenameNoExt + '.log', filemode='w', level=logging.DEBUG)
+
+    # Run a simple batch run if no parameter ranges are found in settings
+    if len(ranges) == 0:
+        logging.info('No parameter ranges specified. Starting batch runs.')
+        noOptimization = True
+        for elem in range(numExploreSamples):
+            RunScrimmage(templateFilePath)
+        os.remove(filename)
+        return -1, -1
 
     xx, yy = parseSamples(samplesFile)
     if len(xx) > 0 and len(yy) > 0:
-        logging.info('Samples from file'+samplesFile)
+        logging.info('Samples from file' + samplesFile)
         logging.info('Initial xx: ' + ','.join((str(x) for x in xx)))
         logging.info('Initial yy: ' + ','.join((str(x) for x in yy)))
 
@@ -102,62 +144,55 @@ def optimize(templateFilename, ranges, stateSpaceSampler,
     simulationIter = len(xx)
 
     if noOptimization:
-        numExploitSamples = 0 # being explicit- dont exploit because we arent optimizing
+        numExploitSamples = 0  # being explicit- dont exploit because we arent optimizing
 
-    for loopIter in range(numExploitSamples+1):
+    for loopIter in range(numExploitSamples + 1):
         newBatchStartingIter = simulationIter
         for params in new_xx:
             # Parse sample into template mission
-            logging.info('Generating Mission File with params: ' + ','.join((str(x) for x in zip(ranges.keys(),params))))
-            missionFile = generateMissionFile(templateFilename, ranges.keys(), params, logPath, simulationIter)
+            logging.info('Generating Mission File with params: ' + ','.join(
+                (str(x) for x in zip(ranges.keys(), params))))
+            missionFile = generateMissionFile(templateFilePath, ranges.keys(),
+                                              params, logPath, simulationIter)
+
+            RunScrimmage(missionFile)
+            os.remove(missionFile)
 
             xx.append(params)
-
-            # Run the same params multiple times (in order to get a better average result)
-            scrimmageProcesses = []
-            for paramScrimmageIter in range(numIterationsPerSample):
-                # run scrimmage
-                logging.info('Executing Mission File')
-                scrimmageProcesses.append(subprocess.Popen(["scrimmage", missionFile]))
-
-            # Wait for all processes to finish
-            for process in scrimmageProcesses:
-                process.wait()
-
-            os.remove(missionFile)
-            logging.info('Completed Scrimmage Simulations')
-
-            simulationIter+=1
+            simulationIter += 1
 
         # analysis for all mission results
-        for iter in range(newBatchStartingIter,simulationIter):
+        for iter in range(newBatchStartingIter, simulationIter):
             if noOptimization:
                 yy.append(-1)
             else:
                 logging.info('Parsing Results')
-                yy.append(postScrimmageAnalysis(logPath+'iter-'+str(iter)))
+                yy.append(postScrimmageAnalysis(logPath + 'iter-' + str(iter)))
 
             # Append the new params and output
             saveSamples(samplesFile, xx[iter], yy[iter], ranges.keys())
 
-        if not noOptimization: # yes optimize
+        if not noOptimization:  # yes optimize
             # Use f_hat to guess some optimal params
             logging.info('Approximating function')
-            knownArgmax, expectedValue, nextArgmax = functionApproximator(xx, yy, ranges)
+            knownArgmax, expectedValue, nextArgmax = functionApproximator(
+                xx, yy, ranges)
             logging.debug('knownArgmax: ' + json.dumps(knownArgmax))
             logging.debug('expectedValue: ' + json.dumps(expectedValue))
             logging.debug('nextArgmax: ' + json.dumps(nextArgmax))
 
             new_xx = [nextArgmax.values()]
         else:
-            knownArgmax = -1, expectedValue = -1
-            break # dont loop again, because we are not optimizing
+            knownArgmax = -1
+            expectedValue = -1
+            break  # dont loop again, because we are not optimizing
 
     logging.info('Analysis complete.')
     return knownArgmax, expectedValue
 
+
 if __name__ == "__main__":
-    lastArg = str(sys.argv[len(sys.argv)-1])
+    lastArg = str(sys.argv[len(sys.argv) - 1])
     if '.json' in lastArg:
         logPath = lastArg
     elif lastArg == 'parameter_optimizer.py':
@@ -179,7 +214,7 @@ if __name__ == "__main__":
     numExploitSamples = parser.getNumExploitSamples()
     ranges = parser.getRanges()
 
-    knownArgmax, expectedValue = optimize(
+    knownArgmax, expectedValue = execute(
         missionFile,
         ranges,
         sampler,
