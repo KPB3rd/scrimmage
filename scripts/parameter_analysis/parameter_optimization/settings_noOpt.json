@@ -1,0 +1,7 @@
+{
+	"MissionFilePath": "/home/kbowers6/Documents/scrimmage/bioswarm/missions/bee_wave.xml",
+	"LogPath": "/home/kbowers6/swarm-log/analysis/",
+	"NoOptimization": true,
+	"NumExploreSamples": 2,
+	"NumIterationsPerSample": 2
+}

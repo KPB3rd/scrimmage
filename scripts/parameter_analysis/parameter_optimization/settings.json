@@ -1,5 +1,5 @@
 {
-	"MissionFilePath": "task_assignment.xml",
+	"MissionFilePath": "~/Documents/scrimmage/bioswarm/missions/bee_wave.xml",
 	"LogPath": "/home/kbowers6/swarm-log/analysis/",
 	"StateSpaceSampler": "LHS",
 	"UtilityColumnName": "Utility",
