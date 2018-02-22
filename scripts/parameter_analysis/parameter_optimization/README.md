@@ -76,8 +76,14 @@ In the **LogPath** directory, the analyzer will generate *iter-N* folders, one f
 
 This tool stores all results in X_samples.log alongside the mission file and will use these additional sample points if executed again. The computed argmax and expected value is printed in the terminal after completion.
 
+See settings.json for an example.
+
 ### How to Collect Data without Optimization
 
 This analyzer can also be used to execute batch mission runs without running optimization. The user can specify the parameter settings, and then make their own scripts to analyze the resulting mission files. The metric plugin is unnecessary and can be excluded.
 
-To collect data without optimization, simply use the Grid Search sampler and set **NoOptimization** to true. This means the tool will run missions with the specified parameters, but will not create new parameters via optimization.
+To collect data without optimization, simply use the Grid Search sampler and set **NoOptimization** to true. This means the tool will run missions with the specified parameters, but will not create new parameters via optimization. See settings_noopt.json for an example.
+
+### How to Run Batches without Parameters
+
+Another feature of this tool is the ability to execute batch runs without specifying parameters in the mission file. This enables the user to run a normal mission file **NumIterationsPerSample** times as-is. See settings_batch.json for an example.

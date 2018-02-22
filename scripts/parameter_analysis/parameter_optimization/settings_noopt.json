@@ -1,0 +1,14 @@
+{
+	"MissionFilePath": "~/Documents/scrimmage/bioswarm/missions/bee_wave.xml",
+	"LogPath": "/home/kbowers6/swarm-log/analysis/",
+	"StateSpaceSampler": "GridSearch",
+	"NoOptimization": true,
+	"NumExploreSamples": 5,
+	"NumIterationsPerSample": 2,
+	"Ranges": {
+		"w_pk": [0, 2],
+		"w_pr": [0, 2],
+		"w_dist": [0, 2],
+		"w_dist_decay": [700, 1300]
+	}
+}

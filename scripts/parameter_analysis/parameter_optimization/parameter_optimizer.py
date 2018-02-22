@@ -127,8 +127,8 @@ def execute(templateFilePath,
     if len(ranges) == 0:
         logging.info('No parameter ranges specified. Starting batch runs.')
         noOptimization = True
-        for elem in range(numExploreSamples):
-            RunScrimmage(templateFilePath)
+        
+        RunScrimmage(templateFilePath)
         os.remove(filename)
         return -1, -1
 
