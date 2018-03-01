@@ -51,8 +51,7 @@ class SettingsParser:
 
     def getPostMissionAnalyzer(self):
         if 'UtilityColumnName' not in self.settings:
-            if self.getNoOptimization(
-            ):  # can only be excluded if not optimizing
+            if self.getNoOptimization():  # can only be excluded if not optimizing
                 return None
             else:
                 print 'Please specify the UtilityColumnName, or enable NoOptimization.'
@@ -81,8 +80,11 @@ class SettingsParser:
         if 'NumExploreSamples' in self.settings:
             return self.settings['NumExploreSamples']
         else:
-            print 'Please specify NumExploreSamples.'
-            quit()
+            if self.getNoOptimization():  # can only be excluded if not optimizing
+                return None
+            else:
+                print 'Please specify NumExploreSamples.'
+                quit()
 
     def getNumIterationsPerSample(self):
         if 'NumIterationsPerSample' in self.settings:

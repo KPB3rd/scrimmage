@@ -15,11 +15,15 @@ import threading
 import time
 import os
 import signal
+import time
 import sys
 import xml.etree.ElementTree as ET
 
 import queue
 from concurrent import futures
+
+def generateMissionFileWithSeed(templateFullFilename, seed):
+    return generateMissionFile(templateFullFilename, ['input_seed'], [seed], None, seed)
 
 
 def generateMissionFile(templateFullFilename, parameterLabels, parameterValues,
@@ -37,9 +41,11 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues,
 
     try:
         # Add log path
-        parameters = dict(
-            zip(parameterLabels + ['log_path'],
-                parameterValues + [logPath + 'iter-' + str(missionIteration)]))
+        if logPath is None:
+            parameters = dict(zip(parameterLabels, parameterValues))
+
+        else:
+            parameters = dict(zip(parameterLabels + ['log_path'],parameterValues + [logPath + 'iter-' + str(missionIteration)]))
 
         # Parse in the params
         missionData = myTemplate.render(**parameters)
@@ -88,18 +94,29 @@ def saveSamples(file, xx, yy, header):
 def RunScrimmage(missionFile):
     # Run the same params multiple times (in order to get a better average result)
     scrimmageProcesses = []
-    filename = os.path.basename(missionFile)
-    mydir = os.path.dirname(os.path.realpath(__file__))
-    shutil.copy2(missionFile, mydir)
-
+    fullFileNames = []
     for paramScrimmageIter in range(numIterationsPerSample):
+        seedMissionFile = generateMissionFileWithSeed(missionFile, paramScrimmageIter)
+        filename = os.path.basename(seedMissionFile)
+
+        mydir = os.path.dirname(os.path.realpath(__file__))
+        shutil.copy2(seedMissionFile, mydir)
+
         # run scrimmage
         logging.info('Executing Mission File')
         scrimmageProcesses.append(subprocess.Popen(["scrimmage", filename]))
+        time.sleep(1) # give this process a head start
+
+        fullFileNames.append(mydir + '/' + filename)
+        fullFileNames.append(seedMissionFile)
 
     # Wait for all processes to finish
     for process in scrimmageProcesses:
         process.wait()
+
+    # Delete all mission files in mission file and local file
+    for fullFileName in fullFileNames:
+        os.remove(fullFileName)
 
     logging.info('Completed Scrimmage Simulations')
 
@@ -127,9 +144,8 @@ def execute(templateFilePath,
     if len(ranges) == 0:
         logging.info('No parameter ranges specified. Starting batch runs.')
         noOptimization = True
-        
+
         RunScrimmage(templateFilePath)
-        os.remove(filename)
         return -1, -1
 
     xx, yy = parseSamples(samplesFile)
@@ -156,7 +172,6 @@ def execute(templateFilePath,
                                               params, logPath, simulationIter)
 
             RunScrimmage(missionFile)
-            os.remove(missionFile)
 
             xx.append(params)
             simulationIter += 1
