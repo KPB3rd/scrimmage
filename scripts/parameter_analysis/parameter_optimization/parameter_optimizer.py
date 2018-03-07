@@ -16,11 +16,14 @@ import time
 import os
 import signal
 import time
+import argparse
 import sys
 import xml.etree.ElementTree as ET
 
 import queue
 from concurrent import futures
+
+startingSeed = 0
 
 def generateMissionFileWithSeed(templateFullFilename, seed):
     return generateMissionFile(templateFullFilename, ['input_seed'], [seed], None, seed)
@@ -53,7 +56,7 @@ def generateMissionFile(templateFullFilename, parameterLabels, parameterValues,
         # Save the file
         folder = os.path.dirname(os.path.abspath(templateFullFilename))
         filename = os.path.splitext(os.path.basename(templateFullFilename))[0]
-        fullFilePath = folder + '/' + filename + str(missionIteration) + '.xml'
+        fullFilePath = folder + '/' + filename + '-' + str(missionIteration) + '.xml'
         file = open(fullFilePath, 'w')
         file.write(missionData)
         file.close()
@@ -96,7 +99,7 @@ def RunScrimmage(missionFile):
     scrimmageProcesses = []
     fullFileNames = []
     for paramScrimmageIter in range(numIterationsPerSample):
-        seedMissionFile = generateMissionFileWithSeed(missionFile, paramScrimmageIter)
+        seedMissionFile = generateMissionFileWithSeed(missionFile, paramScrimmageIter + startingSeed)
         filename = os.path.basename(seedMissionFile)
 
         mydir = os.path.dirname(os.path.realpath(__file__))
@@ -207,14 +210,10 @@ def execute(templateFilePath,
 
 
 if __name__ == "__main__":
-    lastArg = str(sys.argv[len(sys.argv) - 1])
-    if '.json' in lastArg:
-        logPath = lastArg
-    elif lastArg == 'parameter_optimizer.py':
-        logPath = 'settings.json'
-    else:
-        print 'Please correctly specify the settings file (default: settings.json)'
-        quit()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--SettingsFile", dest="settingsFile")
+    args = parser.parse_args()
+    logPath = args.settingsFile
 
     # Parse the configuration from the settings file
     parser = SettingsParser(logPath)
