@@ -1,0 +1,11 @@
+import os
+os.system('python parameter_optimizer.py --SettingsFile settings_batch0.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch10.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch30.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch50.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch80.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch100.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch110.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch120.json')
+os.system('python parameter_optimizer.py --SettingsFile settings_batch150.json')
+os.system('spd-say "your program has finished"')
